@@ -3,7 +3,8 @@
 Conservative defaults throughout are sized for an **NVIDIA RTX 3050 Laptop
 GPU (4096 MiB / 4GB VRAM)**: 4-bit QLoRA on `Qwen/Qwen2.5-1.5B-Instruct`,
 batch size 1 with gradient accumulation, gradient checkpointing, and a
-2048-token sequence length (see `configs/training.yaml`). On a 4GB card
+2560-token sequence length (see `configs/training.yaml`; the citation-grounded
+examples run about 2.0-2.3k tokens each). On a 4GB card
 this is realistically the largest model size that fits — do not switch to
 the 3B/7B Qwen variants on this GPU without a lot more VRAM.
 
@@ -13,10 +14,11 @@ the 3B/7B Qwen variants on this GPU without a lot more VRAM.
 python scripts/check_hardware.py                                   # confirm VRAM / CUDA setup
 python scripts/ingest.py --input data/raw --output data/processed  # parse PDFs in data/raw
 python scripts/build_index.py                                      # build the retrieval index
-python training/prepare_dataset.py                                 # build train/val/test JSONL
+python training/build_cited_dataset.py --train-questions-per-chunk 3  # citation-grounded train/val/test JSONL (resumable)
 python training/train.py --config configs/training.yaml            # QLoRA SFT
+python training/eval_citations.py --adapter_path models/adapters/biolit-qwen-lora   # cites [n]? base vs adapter
 python training/evaluate.py                                        # eval loss/perplexity + samples
-python training/export.py                                          # merge -> GGUF -> Modelfile
+python training/export.py                                          # merge -> GGUF -> Modelfile (needs llama.cpp)
 python scripts/setup_ollama.py --mode finetuned                    # register with Ollama
 ```
 
@@ -28,22 +30,27 @@ python scripts/setup_ollama.py --mode base   # pulls stock Qwen2.5-1.5B-Instruct
                                               # creates "biolit-qwen-base" in Ollama
 ```
 
-`training/prepare_dataset.py` (and its thin wrapper `scripts/build_dataset.py`)
-also run cleanly with an empty `data/processed/` — they print a warning and
+`training/prepare_dataset.py` (the original builder, and its thin wrapper
+`scripts/build_dataset.py`) is superseded by `build_cited_dataset.py` (see below) but
+still runs cleanly with an empty `data/processed/` — they print a warning and
 write empty-but-valid JSONL files rather than crashing, so the rest of the
 pipeline can be exercised end-to-end before any real papers exist.
 
-## Expected runtime
+## Measured runtime and memory
 
-Step time on a 4GB laptop GPU depends heavily on paper count, dataset size,
-and thermal throttling — there is no fabricated "X seconds/step" number
-here. As an order-of-magnitude expectation: with QLoRA on a 1.5B model,
-batch size 1 + grad accumulation 16, a single optimizer step (16
-micro-batches at up to 2048 tokens) is on the order of tens of seconds to a
-few minutes on this class of GPU; `training/train.py` prints an estimated
-total step count before training starts so you can gauge wall-clock time
-for your actual dataset. Run `scripts/check_hardware.py` if you want a
-hardware-specific estimate.
+Measured on the development laptop (RTX 3050 Laptop GPU, 4 GB; 16 GB RAM), batch size 1,
+gradient accumulation 8, examples of about 2.0-2.3k tokens:
+
+- **About 93 s per optimizer step** (8 micro-batches). The first run (66 examples, 32 steps)
+  took about 49 minutes; the second (115 examples, 42 steps) was projected at about 65 minutes.
+- **VRAM sits near the limit** (about 3.9 of 4.0 GB during training). A longer sequence length is
+  likely to run out of memory, which is why the dataset builder enforces a token budget.
+- **RAM: about 3.5-3.9 GB** for the training process. On a 16 GB machine with a browser open this
+  was enough pressure that long background jobs were killed twice; close other memory-hungry apps.
+- **The GPU must be free.** Stop the backend and unload Ollama models (`ollama stop <model>`) first.
+
+`training/train.py` prints an estimated total step count before training starts (it can overcount by
+a step or two because an incomplete final accumulation batch is dropped).
 
 ## Dataset construction and response generation
 
@@ -90,3 +97,36 @@ GGUF and quantize to Q4_K_M. llama.cpp is an external toolchain this
 project does not install for you; if it isn't available, `export.py`
 prints step-by-step manual instructions and exits cleanly rather than
 failing — merging still succeeds either way.
+
+## Citation-grounded dataset (what the reported runs used)
+
+`training/build_cited_dataset.py` builds examples in the exact prompt format the RAG pipeline uses
+(system prompt + numbered-evidence user prompt) with answers that cite `[n]`. A local Ollama teacher
+drafts answers; only those passing deterministic checks are kept (valid citation ids, sentence
+coverage, numbers and wording grounded in the cited evidence, per-citation relevance, no filler, no
+restated questions). Splits are by paper, and retrieval for each split is restricted to its own
+papers. Every attempt and rejection reason is logged to `data/training/cited_attempts.jsonl`, so
+the run is resumable and auditable. See the main README (section 8) for the full method and its
+limits.
+
+Lessons that shaped it, worth knowing if you change the data:
+
+- **Never let the trainer truncate silently.** The first dataset used whole papers as context
+  (3k-32k tokens) against a 2048-token limit, so every response was cut off and the adapter never saw
+  an answer. `train.py` now drops over-length examples and prints the count.
+- **Compute loss on the answer only.** About 97% of each example is prompt; `completion_only_loss: true`
+  masks it (verified: the loss-bearing tokens equal the answer tokens exactly).
+- **Watch for overfitting on small data.** With 66 examples, eval loss was best at step 20 of 32 and
+  rose after; `load_best_model_at_end` keeps the best checkpoint.
+
+## Evaluating an adapter
+
+```bash
+python training/eval_citations.py --adapter_path models/adapters/biolit-qwen-lora        --extra_adapter v2=models/adapters/biolit-qwen-lora-v2/checkpoint-21     # base vs each adapter
+python training/eval_ollama_citations.py --models qwen2.5:3b [--style_hint]      # served-model baseline
+python scripts/summarize_citation_evals.py                                       # merge for the UI
+```
+
+Read the results with their caveats: a 14-prompt held-out set, and checks that reward the style the
+data was built to teach. Loss values alone did not settle the comparison: the second adapter's eval loss was still
+improving when it was stopped (0.473, 0.437, 0.429), yet its citation results matched the first's.
