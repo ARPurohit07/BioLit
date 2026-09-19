@@ -146,14 +146,19 @@ def main() -> None:
 
     all_responses = [r for rs in responses_by_mode.values() for r in rs]
     if all_responses:
-        gen_metrics = average_citation_metrics(all_responses)
+        # Precision / faithfulness only mean something for claims that were actually verified. Fast and Balanced
+        # never verify, so their claims keep the default UNSUPPORTED status; averaging them in would drag the
+        # figures toward 0%. Report these from High-Faithfulness responses only (coverage there is still real).
+        verified = responses_by_mode[RAGMode.HIGH_FAITHFULNESS.value]
+        gen_metrics = average_citation_metrics(verified or all_responses)
+        scope = "High-Faithfulness responses only" if verified else "all modes (no verified responses)"
         result["generation_metrics"] = {
             "citation_precision": gen_metrics.citation_precision,
             "citation_coverage": gen_metrics.citation_coverage,
             "faithfulness": gen_metrics.faithfulness,
             "unsupported_claim_rate": gen_metrics.unsupported_claim_rate,
             "answer_relevance_approx": None,
-            "note": "Automated/approximate metrics from scripts/benchmark.py; not a substitute for human review.",
+            "note": f"Automated/approximate metrics from scripts/benchmark.py ({scope}); not a substitute for human review.",
         }
         result["completed"] = True
     else:

@@ -1,0 +1,89 @@
+{
+  "generated": "2026-09-19T16:30:49.477632+00:00",
+  "n": 14,
+  "prompts": "6 validation + 8 test held-out prompts (paper-level split, retrieval restricted to each split's papers)",
+  "caveats": [
+    "Only 14 held-out prompts (6 validation + 8 test) from 2 papers: differences of a few examples are noise.",
+    "'Passes checker' is the same automated check used to build the training data (valid [n] ids, cited sentences, numbers and wording grounded in the cited evidence, no filler). It measures citation form and grounding, not whether an answer is factually correct, and it favours models trained or prompted toward that style.",
+    "Validation examples were also used to pick adapter checkpoints, so the test column is the cleaner number.",
+    "Adapters were decoded greedily; the served model was sampled with the app's settings (temperature 0.1).",
+    "The fine-tuned adapters are NOT deployed: the app serves qwen2.5:3b."
+  ],
+  "configs": [
+    {
+      "name": "Base 1.5B",
+      "description": "Qwen2.5-1.5B-Instruct, no adapter, pipeline prompt",
+      "n": 14,
+      "cites_any": 0,
+      "valid_ids": 0,
+      "passes_checker": 0,
+      "val_passes": 0,
+      "val_n": 6,
+      "test_passes": 0,
+      "test_n": 8,
+      "avg_sentence_coverage": 0.0,
+      "avg_answer_words": 93.4,
+      "avg_citations": 0.0
+    },
+    {
+      "name": "Fine-tuned v1",
+      "description": "LoRA adapter trained on 66 cited examples",
+      "n": 14,
+      "cites_any": 14,
+      "valid_ids": 14,
+      "passes_checker": 7,
+      "val_passes": 4,
+      "val_n": 6,
+      "test_passes": 3,
+      "test_n": 8,
+      "avg_sentence_coverage": 0.6786,
+      "avg_answer_words": 42.4,
+      "avg_citations": 1.86
+    },
+    {
+      "name": "Fine-tuned v2 (half-trained)",
+      "description": "LoRA adapter, 115 cited examples, checkpoint-21 of 42 steps",
+      "n": 14,
+      "cites_any": 13,
+      "valid_ids": 13,
+      "passes_checker": 7,
+      "val_passes": 3,
+      "val_n": 6,
+      "test_passes": 4,
+      "test_n": 8,
+      "avg_sentence_coverage": 0.7857,
+      "avg_answer_words": 37.9,
+      "avg_citations": 1.71
+    },
+    {
+      "name": "qwen2.5:3b as served",
+      "description": "The model the app uses, prompts exactly as the pipeline sends them",
+      "n": 14,
+      "cites_any": 12,
+      "valid_ids": 12,
+      "passes_checker": 0,
+      "val_passes": 0,
+      "val_n": 6,
+      "test_passes": 0,
+      "test_n": 8,
+      "avg_sentence_coverage": 0.4262,
+      "avg_answer_words": 109.7,
+      "avg_citations": 1.36
+    },
+    {
+      "name": "qwen2.5:3b + style hint",
+      "description": "Same model, citation-style hint added to the system prompt (no training)",
+      "n": 14,
+      "cites_any": 14,
+      "valid_ids": 14,
+      "passes_checker": 9,
+      "val_passes": 3,
+      "val_n": 6,
+      "test_passes": 6,
+      "test_n": 8,
+      "avg_sentence_coverage": 0.9375,
+      "avg_answer_words": 52.6,
+      "avg_citations": 3.0
+    }
+  ]
+}

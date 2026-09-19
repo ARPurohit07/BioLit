@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from backend.app.config.settings import get_settings
 from backend.app.models.schemas import (
+    CitationComparison,
     EvaluationSummary,
     GenerationMetrics,
     LatencyBenchmarkEntry,
@@ -39,10 +40,21 @@ def _load_result_files() -> list[dict]:
     return results
 
 
+def _load_citation_comparison() -> CitationComparison | None:
+    """experiments/finetuned/citation_comparison.json, written by scripts/summarize_citation_evals.py."""
+    path = get_settings().repo_root / "experiments" / "finetuned" / "citation_comparison.json"
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return CitationComparison(**json.load(f))
+    except (OSError, ValueError):  # missing file, bad JSON or a schema mismatch: report "not evaluated", never guess
+        return None
+
+
 @router.get("/", response_model=EvaluationSummary)
 def get_evaluation_summary() -> EvaluationSummary:
     result_files = _load_result_files()
-    if not result_files:
+    citation_comparison = _load_citation_comparison()
+    if not result_files and citation_comparison is None:
         return _NOT_EVALUATED
 
     latency_entries: list[LatencyBenchmarkEntry] = []
@@ -68,7 +80,7 @@ def get_evaluation_summary() -> EvaluationSummary:
             except Exception:
                 continue
 
-    if retrieval_metrics is None and generation_metrics is None and not latency_entries:
+    if retrieval_metrics is None and generation_metrics is None and not latency_entries and citation_comparison is None:
         note = _NOT_EVALUATED.note + " (Found result files under experiments/ but could not parse any known metrics from them.)"
         return EvaluationSummary(evaluated=False, variant="none", note=note)
 
@@ -77,6 +89,7 @@ def get_evaluation_summary() -> EvaluationSummary:
         retrieval_metrics=retrieval_metrics,
         generation_metrics=generation_metrics,
         latency_by_mode=latency_entries,
+        citation_comparison=citation_comparison,
         variant=variant,
         note=None,
     )

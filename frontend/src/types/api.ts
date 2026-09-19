@@ -202,11 +202,36 @@ export interface LatencyBenchmarkEntry {
   tokens_per_second?: number;
 }
 
+export interface CitationConfigResult {
+  name: string;
+  description: string;
+  n: number;
+  cites_any: number;
+  valid_ids: number;
+  passes_checker: number;
+  val_passes: number;
+  val_n: number;
+  test_passes: number;
+  test_n: number;
+  /** 0-1: share of factual sentences that carry an [n] marker. */
+  avg_sentence_coverage: number;
+  avg_answer_words: number;
+  avg_citations: number;
+}
+
+export interface CitationComparison {
+  n: number;
+  prompts: string;
+  caveats: string[];
+  configs: CitationConfigResult[];
+}
+
 export interface EvaluationSummary {
   evaluated: boolean;
   retrieval_metrics?: RetrievalMetrics;
   generation_metrics?: GenerationMetrics;
   latency_by_mode: LatencyBenchmarkEntry[];
+  citation_comparison?: CitationComparison;
   variant: string;
   note?: string;
 }

@@ -217,11 +217,36 @@ class LatencyBenchmarkEntry(BaseModel):
     tokens_per_second: Optional[float] = None
 
 
+class CitationConfigResult(BaseModel):
+    """One model/prompt configuration scored on the held-out citation prompts (see scripts/summarize_citation_evals.py)."""
+    name: str
+    description: str = ""
+    n: int
+    cites_any: int
+    valid_ids: int
+    passes_checker: int
+    val_passes: int = 0
+    val_n: int = 0
+    test_passes: int = 0
+    test_n: int = 0
+    avg_sentence_coverage: float  # 0-1: share of factual sentences that carry an [n] marker
+    avg_answer_words: float = 0.0
+    avg_citations: float = 0.0
+
+
+class CitationComparison(BaseModel):
+    n: int
+    prompts: str = ""
+    caveats: list[str] = Field(default_factory=list)
+    configs: list[CitationConfigResult] = Field(default_factory=list)
+
+
 class EvaluationSummary(BaseModel):
     evaluated: bool
     retrieval_metrics: Optional[RetrievalMetrics] = None
     generation_metrics: Optional[GenerationMetrics] = None
     latency_by_mode: list[LatencyBenchmarkEntry] = Field(default_factory=list)
+    citation_comparison: Optional[CitationComparison] = None
     variant: str  # e.g. "base_rag", "finetuned_rag", "finetuned_no_rag"
     note: Optional[str] = None
 
