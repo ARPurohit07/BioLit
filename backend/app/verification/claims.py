@@ -66,6 +66,18 @@ def _extract_citation_ids(statement: str) -> list[int]:
     return ids
 
 
+def is_abstention(answer_text: str) -> bool:
+    """True when the answer only says the evidence is insufficient — there is nothing in it to cite."""
+    statements = [
+        s
+        for line in answer_text.splitlines()
+        if line.strip()
+        for s in _statements(_clean_line(line.strip()))
+        if len(re.findall(r"\w+", s)) >= 3
+    ]
+    return bool(statements) and all(_ABSTAIN_RE.search(s) for s in statements)
+
+
 def strip_regeneration_scaffold(answer_text: str) -> str:
     """Drop echoed regeneration-prompt scaffolding (and the flagged-claim bullets listed under it)."""
     kept: list[str] = []

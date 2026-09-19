@@ -146,6 +146,8 @@ The data is generated locally and not committed (it is derived from third-party 
 
 After generation, every factual statement is extracted as a claim and mapped to its `[n]` marker(s). The extractor deliberately ignores scaffolding that is not an assertion — headings, lead-ins ("The main findings are:"), bare citation markers, label-only lines, an uncited "the evidence does not specify X" caveat, and any echo of the regeneration prompt — and it keeps a citation with the sentence it belongs to even when the model places it after the period or on the next line. Each cited claim is independently re-checked against *only* its cited evidence by a second, low-temperature LLM pass and classified `SUPPORTED` / `PARTIALLY_SUPPORTED` / `UNSUPPORTED` / `CONTRADICTED`. Claims with no citation are never assumed supported.
 
+If a generated answer contains no valid `[n]` marker at all, the pipeline asks once more with a reminder and keeps the retry only if it actually cites (`citation_retry` in `configs/retrieval.yaml`). An answer that merely says the evidence is insufficient is left alone. In a small test on questions that had failed to cite (3 questions × 8 runs), answers with no citation dropped from 2 of 24 to 0 of 24, at the cost of roughly +10 s on the questions where it triggered.
+
 In High-Faithfulness mode an unsupported answer is regenerated, but a revision is kept only if it retains its citations and lowers the unsupported rate; otherwise the original answer is kept, with its unverified claims annotated. (A small model often "revises" by dropping every `[n]`, which would leave the answer unverifiable.)
 
 The verifier itself was checked on controlled cases and got 12 of 12 right: verbatim sentences came back `SUPPORTED`, and both invented claims and mis-cited claims came back `UNSUPPORTED`. In practice its rejections trace back to the generator — citing the wrong block, or citing nothing.
@@ -311,7 +313,7 @@ Not included yet. The corpus is local (the six papers are not bundled), so run t
 
 - **Small evidence base.** Six papers, and held-out evaluation on 14 prompts from two of them. Differences of a few examples are noise, and retrieval quality is unmeasured.
 - **Correctness is not measured.** The checks cover citation form and wording-level grounding, and they are biased toward the style the training data rewards. A human- or judge-scored sample is the missing piece.
-- **The model still fails sometimes.** In High-Faithfulness mode it occasionally cites the wrong block or nothing at all; the verifier then correctly rejects those claims. Multi-paper comparisons are only about 55% cited.
+- **The model still fails sometimes.** In High-Faithfulness mode it occasionally cites the wrong block, and it still leaves some sentences uncited (about 59% of claims were cited on the 14 held-out questions in Balanced mode); the verifier then correctly rejects those claims. The one-shot retry handles the case of no citations at all, not partial coverage. Multi-paper comparisons are only about 55% cited.
 - **No "not verified" status.** Fast and Balanced modes show 0% faithfulness because they do not verify, which reads as a bad score rather than "not measured".
 - **The fine-tune is not deployed.** Adapters exist and are evaluated, but nothing has been exported to GGUF (it needs an external `llama.cpp` checkout), so the app serves `qwen2.5:3b`. The adapters were also trained with the earlier wording of the citation rules.
 - **Training data covers only question answering.** The teacher model failed the checks on comparison, synthesis and research-gap tasks.
@@ -323,7 +325,6 @@ Not included yet. The corpus is local (the six papers are not bundled), so run t
 ## 18. Future work
 
 - A dedicated "not verified" claim status, so unverified modes stop showing 0% faithfulness.
-- Retry once with a reminder when a first answer contains no `[n]` markers.
 - More papers, and a judged sample to measure correctness rather than citation form.
 - Training examples for comparison, synthesis and research-gap tasks (needs a stronger teacher or a different generation method).
 - Finish the second training run, export an adapter through `llama.cpp`, and benchmark it against the prompt-only 3B.

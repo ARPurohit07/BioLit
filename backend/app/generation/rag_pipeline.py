@@ -34,7 +34,7 @@ from backend.app.models.schemas import (
     RAGMode,
 )
 from backend.app.verification.citation_validator import compute_citation_metrics
-from backend.app.verification.claims import strip_regeneration_scaffold
+from backend.app.verification.claims import is_abstention, strip_regeneration_scaffold
 
 if TYPE_CHECKING:
     from backend.app.retrieval.hybrid import HybridRetriever
@@ -47,12 +47,26 @@ _UNSUPPORTED_NOTE = " *(unsupported — could not be verified against retrieved 
 _UNSUPPORTED_LIKE = {ClaimStatus.UNSUPPORTED, ClaimStatus.CONTRADICTED}
 
 
+_MARKER_RE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
+
+
+def _has_valid_citation(answer: str, evidence: list[EvidenceItem]) -> bool:
+    """True if the answer contains at least one [n] marker that refers to a real evidence block."""
+    valid = {e.citation_id for e in evidence}
+    return any(
+        piece.strip().isdigit() and int(piece) in valid
+        for match in _MARKER_RE.finditer(answer)
+        for piece in match.group(1).split(",")
+    )
+
+
 def _cited_fraction(claims: list[Claim]) -> float:
     return sum(bool(c.citation_ids) for c in claims) / len(claims) if claims else 0.0
 
 
 def _unsupported_rate(claims: list[Claim], unsupported: list[Claim]) -> float:
     return len(unsupported) / len(claims) if claims else 1.0
+
 
 _ASPECT_LABELS = {
     QueryType.COMPARE_PAPERS: "overall approach and findings",
@@ -186,6 +200,50 @@ class RAGPipeline:
             "citations. Keep the rest of the answer intact. Output only the revised answer."
         )
 
+    def _build_citation_retry_prompt(self, user_prompt: str, answer: str) -> str:
+        return (
+            f"{user_prompt}\n\n---\n"
+            f"Your previous answer contained no [n] citation markers:\n{answer}\n\n"
+            "Rewrite it so that every factual sentence ends with the [n] marker(s) of the numbered "
+            "evidence block(s) that support it, placed immediately before the final period "
+            "(e.g. 'Method A improves recall over baseline B [2].'). Keep the content; do not add "
+            "facts the evidence does not state. Output only the rewritten answer."
+        )
+
+    def _ensure_citations(
+        self, user_prompt: str, system_prompt: str, answer: str, evidence: list[EvidenceItem]
+    ) -> str:
+        """If the answer cites nothing, ask once more with a reminder; keep the retry only if it does cite.
+
+        A small model sometimes answers with no [n] markers at all, which leaves every claim unverifiable.
+        An honest "the evidence does not specify X" answer has nothing to cite, so it is left alone, and a
+        retry that still fails to cite is discarded rather than replacing an answer we already have.
+        """
+        cfg = self.config.get("citation_retry", {})
+        attempts = int(cfg.get("max_attempts", 1)) if cfg.get("enabled", True) else 0
+        for attempt in range(attempts):
+            if not evidence or _has_valid_citation(answer, evidence) or is_abstention(answer):
+                break
+            try:
+                revised = strip_regeneration_scaffold(
+                    self.ollama_client.generate(
+                        self._build_citation_retry_prompt(user_prompt, answer),
+                        system=system_prompt,
+                        temperature=0.0 if attempt == 0 else 0.4,
+                    )
+                )
+            except Exception:
+                break
+            if _has_valid_citation(revised, evidence):
+                answer = revised
+                break
+        return answer
+
+    def _generate_cited(self, user_prompt: str, system_prompt: str, evidence: list[EvidenceItem]) -> str:
+        return self._ensure_citations(
+            user_prompt, system_prompt, self.ollama_client.generate(user_prompt, system=system_prompt), evidence
+        )
+
     def _annotate_unsupported(self, answer: str, unsupported: list[Claim]) -> str:
         leftover = []
         for claim in unsupported:
@@ -266,6 +324,7 @@ class RAGPipeline:
 
         t0 = time.perf_counter()
         answer, stats = self.ollama_client.generate_with_stats(user_prompt, system=system_prompt)
+        answer = self._ensure_citations(user_prompt, system_prompt, answer, evidence)
         latency.generation_latency_ms = (time.perf_counter() - t0) * 1000.0
 
         claims = self.claim_extractor.extract(answer, evidence)
@@ -369,7 +428,7 @@ class RAGPipeline:
             system_prompt, user_prompt = build_literature_review_section_prompt(items, subtopic=f"{topic} — {section_name}")
             t0 = time.perf_counter()
             try:
-                text = self.ollama_client.generate(user_prompt, system=system_prompt)
+                text = self._generate_cited(user_prompt, system_prompt, evidence)
             except Exception as exc:
                 text = f"_Could not generate this subsection: {exc}_"
             gen_ms_total += (time.perf_counter() - t0) * 1000.0
@@ -378,7 +437,7 @@ class RAGPipeline:
         comp_system, comp_user = build_comparison_prompt(evidence, aspect=f"key findings related to {topic}")
         t0 = time.perf_counter()
         try:
-            comparative_findings = self.ollama_client.generate(comp_user, system=comp_system)
+            comparative_findings = self._generate_cited(comp_user, comp_system, evidence)
         except Exception as exc:
             comparative_findings = f"_Could not generate comparative findings: {exc}_"
         gen_ms_total += (time.perf_counter() - t0) * 1000.0
@@ -388,7 +447,7 @@ class RAGPipeline:
         )
         t0 = time.perf_counter()
         try:
-            limitations = self.ollama_client.generate(lim_user, system=lim_system)
+            limitations = self._generate_cited(lim_user, lim_system, evidence)
         except Exception as exc:
             limitations = f"_Could not generate limitations: {exc}_"
         gen_ms_total += (time.perf_counter() - t0) * 1000.0
@@ -396,7 +455,7 @@ class RAGPipeline:
         gaps_system, gaps_user = build_research_gap_prompt(evidence)
         t0 = time.perf_counter()
         try:
-            research_gaps = self.ollama_client.generate(gaps_user, system=gaps_system)
+            research_gaps = self._generate_cited(gaps_user, gaps_system, evidence)
         except Exception as exc:
             research_gaps = f"_Could not generate research gaps: {exc}_"
         gen_ms_total += (time.perf_counter() - t0) * 1000.0
@@ -404,7 +463,7 @@ class RAGPipeline:
         bg_system, bg_user = build_qa_prompt(f"Provide a brief background introduction to: {topic}", evidence[:5])
         t0 = time.perf_counter()
         try:
-            background = self.ollama_client.generate(bg_user, system=bg_system)
+            background = self._generate_cited(bg_user, bg_system, evidence[:5])
         except Exception as exc:
             background = f"_Could not generate background: {exc}_"
         gen_ms_total += (time.perf_counter() - t0) * 1000.0

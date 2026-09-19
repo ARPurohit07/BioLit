@@ -15,6 +15,12 @@ reranker:
   candidate_k: 20           # candidates fed into the reranker
   output_k: 5                # evidence chunks kept after reranking
 
+# If a generated answer contains no valid [n] marker, ask once more with a reminder. The retry is kept only
+# if it actually cites; an answer that just says the evidence is insufficient is left alone.
+citation_retry:
+  enabled: true
+  max_attempts: 1
+
 modes:
   fast:
     use_bm25: false
