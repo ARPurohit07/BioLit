@@ -1,0 +1,40 @@
+# Optional convenience compose file for local dev.
+# Ollama itself is NOT containerized here — run it natively on the host
+# (GPU passthrough for Ollama-in-Docker is finicky on Windows/WSL2); both
+# services reach it via host.docker.internal.
+#
+# Usage:
+#   docker compose up --build
+#
+# This does not replace `pip install` / `npm install` local development —
+# it's an alternative for running the already-built app without a local
+# Python/Node toolchain. Model fine-tuning is NOT run inside these containers.
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:3b
+      - BIOLIT_DEBUG=false
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./models:/app/models
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend

@@ -1,0 +1,19 @@
+# BioLit QLoRA fine-tuning pipeline dependencies.
+# Install a CUDA-matched torch build FIRST from https://pytorch.org/get-started/locally/
+# then install the rest:
+#   pip install -r requirements-training.txt
+
+torch==2.4.1
+transformers==4.45.2
+trl==0.11.1
+peft==0.13.2
+bitsandbytes==0.44.1
+accelerate==1.0.1
+datasets==3.0.1
+pyyaml==6.0.2
+requests==2.32.3
+
+# Optional: faster fine-tuning on supported GPUs (install manually, environment-dependent)
+# unsloth @ git+https://github.com/unslothai/unsloth.git
+
+pytest==8.3.3

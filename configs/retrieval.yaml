@@ -1,0 +1,45 @@
+# Retrieval / RAG configuration for BioLit.
+
+chunking:
+  chunk_size: 400          # target tokens per chunk
+  chunk_overlap: 60        # token overlap between adjacent chunks
+  min_chunk_tokens: 40     # drop/merge chunks smaller than this
+
+hybrid:
+  dense_top_k: 20
+  bm25_top_k: 20
+  rrf_k: 60                 # RRF constant (standard default)
+  final_top_k: 10
+
+reranker:
+  candidate_k: 20           # candidates fed into the reranker
+  output_k: 5                # evidence chunks kept after reranking
+
+modes:
+  fast:
+    use_bm25: false
+    use_reranker: false
+    use_verification: false
+    top_k: 5
+  balanced:
+    use_bm25: true
+    use_reranker: true
+    use_verification: false
+    top_k: 5
+  high_faithfulness:
+    use_bm25: true
+    use_reranker: true
+    use_verification: true
+    query_decomposition: true
+    top_k: 5
+    max_regeneration_attempts: 2
+
+vector_store:
+  index_path: "data/index/faiss.index"
+  metadata_path: "data/index/chunk_metadata.jsonl"
+  index_type: "flat_ip"   # cosine via normalized inner product
+
+bm25:
+  index_path: "data/index/bm25_index.pkl"
+  k1: 1.5
+  b: 0.75

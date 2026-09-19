@@ -1,0 +1,43 @@
+# Model configuration for BioLit.
+# Change these to swap models without touching application code.
+
+base_model:
+  name: "Qwen/Qwen2.5-1.5B-Instruct"
+  # Larger options (require more VRAM — see scripts/check_hardware.py for a recommendation):
+  #   "Qwen/Qwen2.5-3B-Instruct"
+  #   "Qwen/Qwen2.5-7B-Instruct"
+  max_seq_length: 4096
+  trust_remote_code: true
+
+ollama:
+  host: "http://localhost:11434"
+  model_name: "biolit-qwen"  # name of the fine-tuned model that scripts/setup_ollama.py *creates* — don't point this at a pulled model
+  # Model the backend actually calls for generation/verification (OLLAMA_MODEL env var overrides).
+  # The 1.5B models ignore the [n] citation rule, which leaves every claim UNSUPPORTED; the 3B model
+  # follows it. NOTE: "biolit-qwen" in Ollama is currently just qwen2.5:1.5b + the BioLit system prompt
+  # (same image ID as biolit-qwen-base) — no fine-tuned GGUF has been exported/created yet. Once
+  # `scripts/setup_ollama.py --mode finetuned` has run, set this to "biolit-qwen" to serve the fine-tune.
+  serving_model_name: "qwen2.5:3b"
+  base_model_name: "qwen2.5:1.5b"  # Ollama's default tag *is* the instruct-tuned variant (unlike the HF repo naming); fallback used via `ollama pull` before fine-tuning exists
+  temperature: 0.1
+  top_p: 0.9
+  num_ctx: 8192
+  request_timeout_s: 120
+
+embedding_model:
+  name: "BAAI/bge-small-en-v1.5"
+  dim: 384
+  device: "auto"          # "auto" | "cpu" | "cuda"
+  batch_size: 32
+  normalize: true
+
+reranker:
+  name: "BAAI/bge-reranker-base"
+  device: "auto"
+  batch_size: 16
+  max_length: 512
+
+verifier:
+  # Verification uses the same local Ollama model by default, with a dedicated low-temperature prompt.
+  use_ollama_model: true
+  temperature: 0.0

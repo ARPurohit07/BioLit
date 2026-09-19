@@ -1,0 +1,5 @@
+# Convenience umbrella. For a leaner install, use requirements-backend.txt
+# and/or requirements-training.txt individually — the backend does not need
+# TRL/PEFT/bitsandbytes, and training doesn't need FastAPI/FAISS.
+-r requirements-backend.txt
+-r requirements-training.txt

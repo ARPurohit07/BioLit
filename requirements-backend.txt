@@ -1,0 +1,31 @@
+# BioLit backend (FastAPI app + RAG pipeline) dependencies.
+# Python 3.11+ recommended. Install with:
+#   pip install -r requirements-backend.txt
+
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pyyaml==6.0.2
+requests==2.32.3
+python-multipart==0.0.9
+
+# PDF parsing
+pymupdf==1.24.11
+
+# Retrieval
+faiss-cpu==1.9.0
+rank-bm25==0.2.2
+sentence-transformers==3.1.1
+transformers==4.45.2
+numpy==1.26.4
+
+# Torch — install a CUDA-matched build from https://pytorch.org/get-started/locally/
+# for GPU-accelerated embeddings/reranking. CPU-only fallback:
+torch==2.4.1
+
+# Hardware introspection
+psutil==6.0.0
+
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2

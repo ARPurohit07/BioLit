@@ -1,0 +1,54 @@
+# Round 2: 115 train examples (data/training/train.jsonl). Same recipe as configs/training.yaml except as noted.
+# QLoRA fine-tuning configuration for BioLit.
+# Conservative defaults for a consumer GPU (~4-8GB VRAM). Increase batch size /
+# sequence length only if scripts/check_hardware.py confirms sufficient VRAM.
+
+model_name: "Qwen/Qwen2.5-1.5B-Instruct"
+dataset_path: "data/training/train.jsonl"
+validation_path: "data/validation/val.jsonl"
+output_dir: "models/adapters/biolit-qwen-lora-v2"   # v1 (66 examples) stays in models/adapters/biolit-qwen-lora
+
+# Sequence / batching
+max_seq_length: 2560   # longest dataset example is 2317 tokens; over-length examples are dropped, never truncated
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+
+# Optimization
+learning_rate: 2.0e-4
+lr_scheduler_type: "cosine"
+warmup_ratio: 0.03
+num_train_epochs: 3   # v1 overfit after ~epoch 2.4 (eval loss best at step 20 of 32)
+weight_decay: 0.01
+max_grad_norm: 0.3
+optim: "paged_adamw_8bit"
+
+# Precision / quantization
+load_in_4bit: true
+bnb_4bit_quant_type: "nf4"
+bnb_4bit_use_double_quant: true
+bnb_4bit_compute_dtype: "bfloat16"   # falls back to float16 automatically if bf16 unsupported
+
+# LoRA
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+lora_target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+lora_bias: "none"
+
+# Logging / checkpointing
+logging_steps: 1
+save_steps: 7    # ~14 steps/epoch with 115 examples: eval + save twice per epoch
+save_total_limit: 2
+eval_strategy: "steps"
+eval_steps: 7
+load_best_model_at_end: true
+metric_for_best_model: "eval_loss"
+early_stopping_patience: 3
+
+# Reproducibility
+seed: 42
+
+# Loss only on the assistant's answer (the prompt is ~85% evidence text)
+completion_only_loss: true
