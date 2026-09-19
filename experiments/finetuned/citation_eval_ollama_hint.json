@@ -1,0 +1,212 @@
+{
+  "timestamp": "2026-09-19T15:51:47.061824+00:00",
+  "models": [
+    "qwen2.5:3b"
+  ],
+  "n": 14,
+  "summary": {
+    "qwen2.5:3b": {
+      "cites_any": 14,
+      "valid_ids": 14,
+      "passes_checker": 9
+    }
+  },
+  "results": [
+    {
+      "source": "val",
+      "task_type": "qa",
+      "question": "What is the relative improvement percentage of MSN-DDI compared to the second-best approach when evaluated under the S1 Partition strategy on the DrugBank dataset?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": false,
+        "checker_reason": "weak_grounding",
+        "num_citations": 2,
+        "answer": "SUPPORTED CLAIM: The relative improvement percentage of MSN-DDI compared to the second-best approach when evaluated under the S1 Partition strategy on the DrugBank dataset is 19.32% [1][4].",
+        "seconds": 8.1
+      }
+    },
+    {
+      "source": "val",
+      "task_type": "qa",
+      "question": "What was the improvement percentage for MSN-DDI over existing methods according to the table provided?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 1,
+        "answer": "SUPPORTED CLAIM: MSN-DDI reaches 99.47% on DrugBank and 99.90% on Twosides respectively [1].",
+        "seconds": 3.2
+      }
+    },
+    {
+      "source": "val",
+      "task_type": "qa",
+      "question": "What specific type of attention mechanism does the substructure extraction module use to learn and extract substructure representations for both drugs?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 2,
+        "answer": "SUPPORTED CLAIM: The substructure extraction module uses self-attention graph pooling to learn and extract substructure representations for both drugs [1][3].",
+        "seconds": 3.4
+      }
+    },
+    {
+      "source": "val",
+      "task_type": "qa",
+      "question": "What specific criteria were used to select important atoms for each block in the multi-view DDI prediction process?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": false,
+        "checker_reason": "irrelevant_citation",
+        "num_citations": 4,
+        "answer": "SUPPORTED CLAIM: important atoms are selected based on high contribution scores [1].\nSUPPORTED CLAIM: top k atoms are extracted from all blocks based on their contribution scores [1][3].\nSUPPORTED CLAIM: final learned substructures are formed by selecting important atoms with more than 3 occurrences in all blocks [1].",
+        "seconds": 4.1
+      }
+    },
+    {
+      "source": "val",
+      "task_type": "qa",
+      "question": "How do changes in chemical structures between new and existing drugs affect performance metrics in drug-drug interaction prediction models?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": false,
+        "checker_reason": "weak_grounding",
+        "num_citations": 3,
+        "answer": "SUPPORTED CLAIM: The chemical structures of new drugs are very different from existing drugs due to large differences on scaffolds [1].\nSUPPORTED CLAIM: MSN-DDI improves prediction performance for real-world DDI applications to new drugs, as shown by the improvement in accuracy and AUC metrics under both transductive and inductive settings [2][3].",
+        "seconds": 4.1
+      }
+    },
+    {
+      "source": "val",
+      "task_type": "qa",
+      "question": "What specific components contribute most significantly to the improved performance of MSN-DDI compared to state-of-the-art algorithms, according to ablation studies?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 3,
+        "answer": "SUPPORTED CLAIM: The inter-view interaction contributes most significantly to the improvement of MSN-DDI compared to state-of-the-art algorithms [1][2].\nSUPPORTED CLAIM: Simultaneously performing both intra-view and inter-view feature extraction is important for MSN-DDI, as demonstrated by ablation studies [2].",
+        "seconds": 3.9
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "What is the purpose of using a bilinear attention network (BAN) for feature fusion in the context of integrating protein and drug features for Drug-Target Interaction (DTI) prediction?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 5,
+        "answer": "SUPPORTED CLAIM: The bilinear attention network (BAN) is utilized for feature fusion in the context of integrating protein and drug features for Drug-Target Interaction (DTI) prediction [1][2]. SUPPORTED CLAIM: BAN captures reaction features between pairs of proteins or between drugs and targets, aiming to improve DTI prediction accuracy [1]. SUPPORTED CLAIM: The bilinear attention network is effective in learning pairwise interaction features as demonstrated by the ablation results presented in Table 3 [2]. LIMITATION: The effectiveness of BAN for feature fusion in DTI prediction has been validated through experiments involving known and novel drugs, but its generalization performance remains a limitation [2].",
+        "seconds": 5.3
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "How does the information contained within protein representation differ between small molecular drug interactions and large molecular protein interactions?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 2,
+        "answer": "SUPPORTED CLAIM: Protein representation information for small molecular drugs differs from that for large molecular proteins in capturing local and global protein structures [1].\nSUPPORTED CLAIM: The DTI field focuses on detecting information within smaller, specific regions of the protein structure (i.e., local information), such as binding pockets and active sites [1].",
+        "seconds": 4.3
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "What role does the bilinear attention mechanism play in accurately learning interactions between drug–target and protein–protein pairs?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 3,
+        "answer": "SUPPORTED CLAIM: The bilinear attention mechanism captures reaction features between pairs of proteins or drugs and targets [3].\nSUPPORTED CLAIM: The bilinear attention mechanism is utilized for feature fusion in both the drug–target interaction channel and protein–protein interaction channel [1][3].",
+        "seconds": 4.0
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "What is the impact of using a siamese network with dual-channel strategy on predicting drug-target protein interactions in zero-shot scenarios, as shown by the AUROC values in Table 3?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 3,
+        "answer": "SUPPORTED CLAIM: The siamese network with dual-channel strategy improves AUROC values for novel drugs and targets [1][3].\nLIMITATION: The paper does not provide specific AUROC values for the siamese network alone without the bilinear attention module, only in combination with DrugBAN [4].",
+        "seconds": 4.3
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "What is the purpose of setting protein sequences to the same length for batch processing and model training in SiamDTI?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 2,
+        "answer": "SUPPORTED CLAIM: The purpose of setting protein sequences to the same length for batch processing and model training in SiamDTI is to enable consistent input representation across different proteins [1][3].",
+        "seconds": 3.8
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "summarize",
+      "question": "Summarize the key findings of: A Cross-Field Fusion Strategy for Drug–Target Interaction Prediction",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": false,
+        "checker_reason": "low_citation_coverage",
+        "num_citations": 9,
+        "answer": "SUPPORTED CLAIM: The proposed SiamDTI method integrates local and global protein information through a cross-field fusion strategy, achieving higher accuracy in predicting novel drug-target interactions compared to existing methods [1][4].\n\nSUPPORTED CLAIM: Traditional DTI prediction methods fail to utilize the global information of target proteins effectively, leading to poor performance on novel drugs and targets [3][4].\n\nINTERPRETATION: The SiamDTI method's success can be attributed to its dual-channel network structure that combines local (from PPI module) and global protein information from both PPI and DTI modules, thereby improving the prediction accuracy for both known and novel drug-target interactions.\n\nSUPPORTED CLAIM: The experimental results demonstrate that SiamDTI outperforms other state-of-the-art methods in predicting novel drugs and targets [1][4].\n\nLIMITATION: While the method shows promise in improving prediction performance on novel DTIs, its effectiveness may vary depending on the specific dataset used for testing. Further validation across diverse datasets is required to fully assess its robustness.\n\nSUPPORTED CLAIM: The SiamDTI method's success can be attributed to its dual-channel network structure that combines local (from PPI module) and global protein information from both PPI and DTI modules, thereby improving the prediction accuracy for both known and novel drug-target interactions [1][4].\n\nSUPPORTED CLAIM: The proposed approach utilizes bilinear attention networks with different weights to learn distinct interaction representations between drugs and targets [5].",
+        "seconds": 8.2
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "What specific improvement in accuracy does SiamDTI achieve compared to existing mainstream methods during DTI tasks, particularly in scenarios involving novel drugs and targets?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": false,
+        "checker_reason": "restates_question",
+        "num_citations": 2,
+        "answer": "SUPPORTED CLAIM: SiamDTI achieves higher accuracy than existing mainstream methods during DTI tasks [1][5].",
+        "seconds": 3.7
+      }
+    },
+    {
+      "source": "test",
+      "task_type": "qa",
+      "question": "What are the accuracy levels achieved by SiamDTI on novel drug-target interactions compared to other state-of-the-art (SOTA) methods, as demonstrated in the experimental results on three benchmark datasets?",
+      "qwen2.5:3b": {
+        "cites_any": true,
+        "valid_ids": true,
+        "passes_checker": true,
+        "checker_reason": "ok",
+        "num_citations": 1,
+        "answer": "SUPPORTED CLAIM: SiamDTI achieves higher accuracy levels than other state-of-the-art (SOTA) methods on novel drugs and targets [1].\nLIMITATION: The evidence provided does not specify the exact accuracy levels achieved by SiamDTI compared to other methods, only stating that it performs better.",
+        "seconds": 4.0
+      }
+    }
+  ]
+}
