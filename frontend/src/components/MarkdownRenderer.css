@@ -1,0 +1,46 @@
+.markdown-body {
+  color: var(--text-primary);
+  line-height: 1.65;
+}
+
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5 {
+  margin-top: 20px;
+}
+
+.markdown-body p {
+  margin: 0 0 12px;
+  color: var(--text-primary);
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0 0 12px;
+  padding-left: 22px;
+}
+
+.markdown-body li {
+  margin-bottom: 4px;
+}
+
+.citation-marker {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.6;
+  margin: 0 1px;
+  transform: translateY(-1px);
+}
+
+.citation-marker:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}

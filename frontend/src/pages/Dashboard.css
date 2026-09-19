@@ -1,0 +1,67 @@
+.dashboard-banner {
+  background: var(--status-red-bg);
+  border: 1px solid var(--status-red);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.dashboard-banner p {
+  margin: 4px 0 10px;
+  color: var(--text-secondary);
+}
+
+.dashboard-health-card {
+  margin-bottom: 28px;
+}
+
+.dashboard-health-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.dashboard-ok {
+  color: var(--status-green);
+}
+
+.dashboard-down {
+  color: var(--status-red);
+}
+
+.dashboard-model {
+  font-size: 13px;
+}
+
+.dashboard-links-heading {
+  margin-bottom: 12px;
+}
+
+.dashboard-links-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.dashboard-link-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-primary);
+  transition: border-color 0.15s ease;
+}
+
+.dashboard-link-card:hover {
+  border-color: var(--accent-border);
+  text-decoration: none;
+}
+
+.dashboard-link-label {
+  font-weight: 600;
+}
+
+.dashboard-link-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}

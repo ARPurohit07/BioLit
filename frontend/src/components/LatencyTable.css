@@ -1,0 +1,26 @@
+.latency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.latency-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.latency-table tr:last-child td {
+  border-bottom: none;
+}
+
+.latency-value {
+  text-align: right;
+  color: var(--text-primary);
+}
+
+.latency-total td {
+  font-weight: 700;
+  color: var(--text-primary);
+  padding-top: 8px;
+}

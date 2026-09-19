@@ -1,0 +1,91 @@
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.doc-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 8px 10px;
+}
+
+.doc-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: middle;
+}
+
+.doc-table-title {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.doc-table-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.doc-table-btn {
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.doc-table-empty {
+  color: var(--text-secondary);
+  padding: 20px 0;
+}
+
+.doc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.doc-modal {
+  width: 480px;
+  max-width: 92vw;
+  max-height: 84vh;
+  overflow-y: auto;
+}
+
+.doc-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.doc-modal-fields {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.doc-modal-fields dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.doc-modal-fields dd {
+  margin: 0;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.doc-modal-error {
+  color: var(--status-red);
+}

@@ -1,0 +1,66 @@
+.eval-not-evaluated {
+  border-color: var(--status-amber);
+  background: var(--status-amber-bg);
+}
+
+.eval-not-evaluated h3 {
+  color: var(--status-amber);
+}
+
+.eval-variant {
+  color: var(--text-muted);
+  margin: -6px 0 20px;
+}
+
+.eval-section {
+  margin-bottom: 28px;
+}
+
+.eval-stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.eval-note {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.eval-note-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+
+.eval-chart-card {
+  margin-bottom: 18px;
+  overflow-x: auto;
+}
+
+.eval-subheading {
+  margin-top: 4px;
+}
+
+.eval-latency-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.eval-latency-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 8px 10px;
+}
+
+.eval-latency-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+}

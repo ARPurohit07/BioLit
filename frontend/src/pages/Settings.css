@@ -1,0 +1,60 @@
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.settings-fields {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 6px 12px;
+  margin: 0 0 10px;
+}
+
+.settings-fields dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.settings-fields dd {
+  margin: 0;
+}
+
+.settings-hint {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+
+.settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.settings-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-strong);
+  padding: 8px 10px;
+}
+
+.settings-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+
+.settings-steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.settings-steps li {
+  margin-bottom: 6px;
+}

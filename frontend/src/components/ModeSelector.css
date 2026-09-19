@@ -1,0 +1,46 @@
+.mode-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mode-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  cursor: pointer;
+  background: var(--bg-inset);
+  transition: border-color 0.15s ease;
+}
+
+.mode-option:hover {
+  border-color: var(--border-strong);
+}
+
+.mode-option-active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.mode-option input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+}
+
+.mode-option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mode-option-label {
+  font-weight: 600;
+}
+
+.mode-option-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
