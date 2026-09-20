@@ -8,6 +8,7 @@ import MarkdownRenderer from "../components/MarkdownRenderer";
 import LatencyTable from "../components/LatencyTable";
 import { useEvidenceViewer } from "../components/EvidenceViewerContext";
 import { formatPercent, NOT_VERIFIED_HINT } from "../utils/format";
+import FlaggedClaimsChip from "../components/FlaggedClaimsChip";
 import "../styles/results.css";
 
 export default function LiteratureReview() {
@@ -165,6 +166,7 @@ export default function LiteratureReview() {
                   <span className="stat-value">{result.num_sources}</span>
                 </div>
                 {result.citation_metrics && (
+                  <>
                   <div
                     className="stat-chip"
                     title={result.citation_metrics.faithfulness === null ? NOT_VERIFIED_HINT : undefined}
@@ -174,6 +176,8 @@ export default function LiteratureReview() {
                       {formatPercent(result.citation_metrics.faithfulness)}
                     </span>
                   </div>
+                  <FlaggedClaimsChip metrics={result.citation_metrics} />
+                  </>
                 )}
               </div>
             </div>

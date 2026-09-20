@@ -1,4 +1,5 @@
 import type { ClaimStatus, DocumentStatus } from "../types/api";
+import { GROUNDING_FLAG_HINT } from "../utils/format";
 import "./StatusBadge.css";
 
 const DOCUMENT_STATUS_LABEL: Record<DocumentStatus, string> = {
@@ -47,7 +48,20 @@ export function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
   );
 }
 
-export function ClaimStatusBadge({ status }: { status: ClaimStatus }) {
+export function ClaimStatusBadge({
+  status,
+  grounding,
+}: {
+  status: ClaimStatus;
+  grounding?: "strong" | "weak" | "none" | null;
+}) {
+  if (status === "NOT_VERIFIED" && grounding === "none") {
+    return (
+      <span className="badge badge-orange badge-estimate" title={GROUNDING_FLAG_HINT}>
+        Check source
+      </span>
+    );
+  }
   const title =
     status === "NOT_VERIFIED"
       ? "This claim was not checked against the evidence. Fast and Balanced modes do not verify; use High-Faithfulness mode."

@@ -111,7 +111,14 @@ def validate_query_response(d: dict, mode: str | None = None, doc_ids: list[str]
             p.append(f"claim {c['claim_id']} cites blocks {c['citation_ids']} not in evidence {sorted(valid)}")
         if not c["text"].strip():
             p.append(f"claim {c['claim_id']} is empty")
+        if c.get("grounding") not in (None, "strong", "weak", "none"):
+            p.append(f"claim {c['claim_id']} has unknown grounding {c.get('grounding')!r}")
+        if not c["citation_ids"] and c.get("grounding") not in (None, "none"):
+            p.append(f"claim {c['claim_id']} cites nothing but was rated grounded ({c.get('grounding')})")
     m = d.get("citation_metrics", {})
+    n_flagged = sum(c.get("grounding") == "none" for c in claims)
+    if claims and m.get("flagged_claims") != n_flagged:
+        p.append(f"flagged_claims {m.get('flagged_claims')} != {n_flagged} claims with grounding 'none'")
     n_verified = sum(c["status"] != "NOT_VERIFIED" for c in claims)
     if m.get("verified_claims") != n_verified:
         p.append(f"verified_claims {m.get('verified_claims')} != {n_verified} claims with a real status")
@@ -379,7 +386,7 @@ def lifecycle(c: Client, base_docs: int, base_chunks: int) -> None:
                    "lifecycle: retrieved evidence is from the uploaded text", "")
     finally:
         if doc_id:
-            expect(c, "lifecycle: delete the synthetic document", "DELETE", f"/api/documents/{doc_id}, report=True", {200}, timeout=60)
+            expect(c, "lifecycle: delete the synthetic document", "DELETE", f"/api/documents/{doc_id}", {200}, report=True, timeout=60)
             h = _json(c.call("GET", "/api/health", timeout=30)[0]) or {}
             restored = h.get("num_indexed_documents") == base_docs and h.get("num_indexed_chunks") == base_chunks
             record("PASS" if restored else "FAIL", "lifecycle: index returned to its original size after delete",

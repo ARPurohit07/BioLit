@@ -109,7 +109,7 @@ export default function EvidenceViewer() {
                 {relatedClaims.map((claim) => (
                   <div key={claim.claim_id} className="evidence-claim">
                     <div className="evidence-claim-header">
-                      <ClaimStatusBadge status={claim.status} />
+                      <ClaimStatusBadge status={claim.status} grounding={claim.grounding} />
                     </div>
                     <p className="evidence-claim-text">{claim.text}</p>
                     {claim.verifier_rationale && (

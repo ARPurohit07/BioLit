@@ -8,6 +8,7 @@ only the verified claims, and are None (not measured) when there are none.
 from __future__ import annotations
 
 from backend.app.models.schemas import Claim, ClaimStatus, CitationMetrics
+from backend.app.verification.grounding import count_flagged
 
 _SUPPORTED_LIKE = {ClaimStatus.SUPPORTED, ClaimStatus.PARTIALLY_SUPPORTED}
 _UNSUPPORTED_LIKE = {ClaimStatus.UNSUPPORTED, ClaimStatus.CONTRADICTED}
@@ -29,6 +30,7 @@ def compute_citation_metrics(claims: list[Claim]) -> CitationMetrics:
         )
 
     citation_coverage = sum(1 for c in claims if c.citation_ids) / total_claims
+    flagged_claims = count_flagged(claims)
 
     verified = [c for c in claims if c.status != ClaimStatus.NOT_VERIFIED]
     if not verified:
@@ -38,6 +40,7 @@ def compute_citation_metrics(claims: list[Claim]) -> CitationMetrics:
             faithfulness=None,
             unsupported_claim_rate=None,
             verified_claims=0,
+            flagged_claims=flagged_claims,
             total_claims=total_claims,
             total_citations=total_citations,
         )
@@ -55,6 +58,7 @@ def compute_citation_metrics(claims: list[Claim]) -> CitationMetrics:
         faithfulness=faithfulness,
         unsupported_claim_rate=unsupported_claim_rate,
         verified_claims=len(verified),
+        flagged_claims=flagged_claims,
         total_claims=total_claims,
         total_citations=total_citations,
     )

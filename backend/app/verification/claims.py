@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from backend.app.models.schemas import Claim, EvidenceItem
+from backend.app.verification.grounding import annotate as annotate_grounding
 
 _SINGLE_MARKER_RE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
 
@@ -161,4 +162,5 @@ class ClaimExtractor:
                 )
                 idx += 1
 
+        annotate_grounding(claims, evidence)  # a fast, LLM-free estimate; the verifier (when it runs) is separate
         return claims

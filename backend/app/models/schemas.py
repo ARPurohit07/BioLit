@@ -118,6 +118,9 @@ class Claim(BaseModel):
     citation_ids: list[int] = Field(default_factory=list)
     status: ClaimStatus = ClaimStatus.NOT_VERIFIED  # the verifier sets a real status; unverified modes leave this
     verifier_rationale: Optional[str] = None
+    # A fast heuristic ESTIMATE of grounding in the cited evidence (no LLM); "strong" | "weak" | "none". Not a verdict.
+    grounding: Optional[str] = None
+    grounding_score: Optional[float] = None
 
 
 class CitationMetrics(BaseModel):
@@ -127,6 +130,7 @@ class CitationMetrics(BaseModel):
     faithfulness: Optional[float] = None
     unsupported_claim_rate: Optional[float] = None
     verified_claims: int = 0
+    flagged_claims: int = 0  # claims the LLM-free heuristic flags as "check against the source"; a hint, not a verdict
     total_claims: int
     total_citations: int
 

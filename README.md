@@ -155,6 +155,15 @@ The verifier itself was checked on controlled cases and got 12 of 12 right: verb
 
 **Unverified modes.** Fast and Balanced do not verify, so their claims carry a `NOT_VERIFIED` status (a gray "Not verified" badge in the UI) and precision, faithfulness and the unsupported-claim rate are reported as *not measured* (shown as "—") instead of a misleading 0%. Only citation coverage, which needs no verifier, is reported for them. In High-Faithfulness mode every claim gets a real status.
 
+**A fast "check source" flag for unverified modes.** `backend/app/verification/grounding.py` runs in milliseconds with no LLM: it looks at whether a claim cites anything, how much of its wording appears in the cited passages, whether every number in it appears there, and whether each cited block is related to it. Claims it scores as "none" get a dashed orange **Check source** badge, and the answer header shows a "Flagged to check" count. It is a hint, not a verdict, and it was measured before being shown. On 258 cited claims from 44 questions, compared with the LLM verifier's verdicts (`scripts/calibrate_grounding.py`, results in `experiments/grounding_calibration.json`):
+
+| | Calibration half | Held-out half | Both |
+|---|---|---|---|
+| Flagged claims that the verifier called unsupported or contradicted | 47% (14/30) | 68% (17/25) | 56% (31/55) |
+| Unsupported or contradicted claims that were flagged | 35% | 49% | 41% (31/75) |
+
+A random flag would be right 29% of the time (75 of the 258 claims), so the flag roughly doubles the hit rate while still missing more than half of the bad claims. The thresholds were fixed before the data was collected. The other two labels, "strong" and "weak", were not good enough to show: "strong" matched the verifier's `SUPPORTED` only 56% of the time on the held-out half (base rate 42%), and the per-answer share of strong claims was off by about 0.30 on average. That is why no "estimated faithfulness" number is reported, and why the flag does not replace High-Faithfulness mode. The reference is itself a 3B model's judgement, not ground truth, and the two halves differ noticeably, so the figures are rough.
+
 Citation Precision, Citation Coverage and Faithfulness are computed in `backend/app/verification/citation_validator.py`.
 
 ## 11. Evaluation
@@ -288,6 +297,7 @@ Writes latency + citation-quality results per RAG mode to `data/results/` and `e
 | `python training/eval_ollama_citations.py` | Score an Ollama-served model on the same prompts (`--style_hint` for the prompt-only variant) |
 | `python scripts/summarize_citation_evals.py` | Merge the raw results into `citation_comparison.json` for the UI |
 | `python scripts/benchmark.py` | Fast/Balanced/High-Faithfulness latency + quality benchmark |
+| `python scripts/calibrate_grounding.py {collect,analyze}` | Collect claims + LLM verdicts from a running backend, then measure how well the fast grounding flag agrees with them |
 | `python scripts/smoke_test_api.py` | Exercise and validate every endpoint of a running backend (see §16) |
 | `python -m pytest -q` | Run the test suite (see §16) |
 

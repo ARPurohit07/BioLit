@@ -1,0 +1,81 @@
+{
+  "n_claims": 258,
+  "n_questions": 44,
+  "verifier_verdicts": {
+    "UNSUPPORTED": 75,
+    "PARTIALLY_SUPPORTED": 75,
+    "SUPPORTED": 108
+  },
+  "base_rate_supported": 0.419,
+  "base_rate_unsupported_or_contradicted": 0.291,
+  "shipped_thresholds": {
+    "strong_min": 0.7,
+    "weak_min": 0.45
+  },
+  "shipped_calibration_half": {
+    "n": 143,
+    "labels": {
+      "none": 30,
+      "weak": 60,
+      "strong": 53
+    },
+    "accuracy_strong_vs_supported": 0.5944055944055944,
+    "balanced_accuracy": 0.5833333333333334,
+    "precision_strong": 0.5660377358490566,
+    "recall_strong": 0.46153846153846156,
+    "none_catches_unsupported": 0.4666666666666667,
+    "unsupported_recall": 0.35,
+    "confusion": {
+      "tp": 30,
+      "fp": 23,
+      "fn": 35,
+      "tn": 55
+    }
+  },
+  "shipped_held_out": {
+    "n": 115,
+    "labels": {
+      "strong": 41,
+      "none": 25,
+      "weak": 49
+    },
+    "accuracy_strong_vs_supported": 0.6695652173913044,
+    "balanced_accuracy": 0.6424418604651163,
+    "precision_strong": 0.5609756097560976,
+    "recall_strong": 0.5348837209302325,
+    "none_catches_unsupported": 0.68,
+    "unsupported_recall": 0.4857142857142857,
+    "confusion": {
+      "tp": 23,
+      "fp": 18,
+      "fn": 20,
+      "tn": 54
+    }
+  },
+  "tuned_alternative": {
+    "strong_min": 0.6,
+    "weak_min": 0.2,
+    "held_out": {
+      "n": 115,
+      "labels": {
+        "strong": 54,
+        "weak": 51,
+        "none": 10
+      },
+      "accuracy_strong_vs_supported": 0.6260869565217392,
+      "balanced_accuracy": 0.626453488372093,
+      "precision_strong": 0.5,
+      "recall_strong": 0.627906976744186,
+      "none_catches_unsupported": 0.8,
+      "unsupported_recall": 0.22857142857142856,
+      "confusion": {
+        "tp": 27,
+        "fp": 27,
+        "fn": 16,
+        "tn": 45
+      }
+    }
+  },
+  "answer_level_mean_abs_error": 0.304,
+  "note": "Agreement with the LLM verifier (a 3B model), not with ground truth. Shipped thresholds were fixed before collecting data; the tuned alternative is fit on half the questions and scored on the other half."
+}

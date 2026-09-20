@@ -3,6 +3,7 @@ import MarkdownRenderer from "./MarkdownRenderer";
 import LatencyTable from "./LatencyTable";
 import { useEvidenceViewer } from "./EvidenceViewerContext";
 import { formatPercent, NOT_VERIFIED_HINT } from "../utils/format";
+import FlaggedClaimsChip from "./FlaggedClaimsChip";
 import "../styles/results.css";
 
 export default function QueryResultPanel({ result }: { result: QueryResponse }) {
@@ -48,6 +49,7 @@ export default function QueryResultPanel({ result }: { result: QueryResponse }) 
                   {formatPercent(result.citation_metrics.faithfulness)}
                 </span>
               </div>
+              <FlaggedClaimsChip metrics={result.citation_metrics} />
             </>
           )}
         </div>

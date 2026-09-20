@@ -103,6 +103,9 @@ export interface Claim {
   citation_ids: number[];
   status: ClaimStatus;
   verifier_rationale?: string;
+  /** Fast LLM-free text-overlap heuristic; only "none" is shown (a check-this flag, not a verdict). */
+  grounding?: "strong" | "weak" | "none" | null;
+  grounding_score?: number | null;
 }
 
 export interface CitationMetrics {
@@ -112,6 +115,8 @@ export interface CitationMetrics {
   faithfulness: number | null;
   unsupported_claim_rate: number | null;
   verified_claims: number;
+  /** Claims the heuristic flags for a manual check; not a faithfulness measure. */
+  flagged_claims?: number;
   total_claims: number;
   total_citations: number;
 }

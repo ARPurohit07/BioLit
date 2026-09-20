@@ -26,6 +26,7 @@ experiments/**/*.json
 # ...but keep the small citation-evaluation results: they are the evidence behind the README's numbers
 !experiments/finetuned/citation_eval*.json
 !experiments/finetuned/citation_comparison.json
+!experiments/grounding_calibration.json
 
 # Logs from training / dataset builds / evaluations (kept locally under logs/)
 logs/

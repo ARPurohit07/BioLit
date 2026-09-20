@@ -59,3 +59,10 @@
     opacity: 1;
   }
 }
+
+/* An estimate, not a verdict: dashed outline instead of a solid pill. */
+.badge-estimate {
+  background: transparent;
+  outline: 1px dashed currentColor;
+  outline-offset: -1px;
+}
