@@ -95,6 +95,11 @@ def validate_query_response(d: dict, mode: str | None = None, doc_ids: list[str]
         if not e["text"].strip() or not e["document_id"] or e["page_number"] < 1:
             p.append(f"evidence [{e['citation_id']}] has empty text/document or page < 1")
             break
+    for e in ev:
+        if e.get("chunk_type", "text") not in ("text", "table", "figure"):
+            p.append(f"evidence [{e['citation_id']}] has unknown chunk_type {e.get('chunk_type')!r}")
+        if e.get("image_url") and e.get("chunk_type") != "figure":
+            p.append(f"evidence [{e['citation_id']}] has an image but is not a figure chunk")
     if doc_ids is not None:
         stray = {e["document_id"] for e in ev} - set(doc_ids)
         if stray:
@@ -253,6 +258,24 @@ def run(args) -> int:
                             json={"question": "drug repurposing with machine learning", "mode": "balanced", "query_type": qtype})
         check_query_result(f"query_type={qtype} returns a valid answer", body, secs, mode="balanced")
 
+    # Structure-aware chunks: a figure or table can be retrieved, is typed, and a figure's image is served.
+    body, secs = expect(c, "POST /api/query that should retrieve a figure caption", "POST", "/api/query", {200},
+                        json={"question": "ROC curves and precision-recall curves comparing approaches that predict candidate drugs for new diseases", "mode": "fast"})
+    if body is not None:
+        figs = [e for e in body["evidence"] if e.get("chunk_type") == "figure" and e.get("image_url")]
+        if not figs:
+            record("WARN", "a figure chunk was retrieved with an image", "none in the top results; is the 50-paper corpus indexed?", secs)
+        else:
+            r, s2, err = c.call("GET", figs[0]["image_url"], timeout=30)
+            ok = r is not None and r.status_code == 200 and r.headers.get("content-type", "").startswith("image/") and len(r.content) > 1000
+            record("PASS" if ok else "FAIL", "a retrieved figure's image is served under /figures",
+                   err or f"{figs[0]['label']} -> HTTP {r.status_code}, {r.headers.get('content-type')}, {len(r.content)} bytes", s2)
+    body, secs = expect(c, "POST /api/query about a table value", "POST", "/api/query", {200},
+                        json={"question": "AUC of the compared methods reported in the results table", "mode": "balanced"})
+    if body is not None:
+        kinds = sorted({e.get("chunk_type", "text") for e in body["evidence"]})
+        record("PASS", "table/figure-aware evidence is typed in a Balanced query", f"evidence types: {kinds}", secs)
+
     # ------------------------------------------------------------------ compare (the UI's request shape)
     expect(c, "compare with an invalid aspect is rejected with 422", "POST", "/api/compare", {422}, report=True, timeout=30,
            json={"document_ids": [doc_a, doc_b], "aspect": "nonsense", "mode": "balanced"})
@@ -325,6 +348,18 @@ def run(args) -> int:
                     problems.append(f"inconsistent counts in {cfg['name']}")
         else:
             problems.append("no citation_comparison served")
+        re_ = body.get("rag_eval") or {}
+        ret, rag = re_.get("retrieval"), re_.get("ragas")
+        if ret:
+            best = ret["arms"].get("hybrid+rerank", {}).get("chunk/all", {})
+            if not (ret["eval_set"]["n"] > 0 and 0 <= best.get("recall@5", {}).get("mean", -1) <= 1):
+                problems.append("retrieval_eval is served but its numbers are missing or out of range")
+        if rag:
+            for mode, m in rag["modes"].items():
+                if m["n_judged"] > m["n_questions"]:
+                    problems.append(f"ragas {mode}: judged {m['n_judged']} > asked {m['n_questions']}")
+            if any(v.get("separates") is None for v in (rag.get("judge_validity") or {}).values()):
+                problems.append("judge_validity entries lack the 'separates' verdict")
         record("FAIL" if problems else "PASS", "evaluation summary is populated and internally consistent",
                "; ".join(problems) or f"{len(cc['configs'])} configurations", secs)
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
 from backend.app import db
@@ -164,6 +165,9 @@ class RAGPipeline:
                     section=chunk.section,
                     text=chunk.text,
                     score=score,
+                    chunk_type=chunk.chunk_type,
+                    label=chunk.label,
+                    image_url=f"/figures/{Path(chunk.image_path).name}" if chunk.image_path else None,
                 )
             )
         return evidence

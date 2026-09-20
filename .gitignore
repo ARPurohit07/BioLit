@@ -9,6 +9,7 @@ venv/
 # Data / models (large, machine-specific — keep the repo light)
 data/raw/*
 data/processed/*
+data/figures/*
 data/training/*
 data/validation/*
 data/test/*
@@ -52,3 +53,8 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
+
+.venv-eval/
+!experiments/eval/
+!experiments/eval/*
+experiments/eval/runs_*.jsonl

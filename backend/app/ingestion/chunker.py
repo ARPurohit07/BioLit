@@ -9,6 +9,7 @@ import re
 
 from backend.app.ingestion.pdf_loader import PageText
 from backend.app.ingestion.section_detector import SectionDetector
+from backend.app.ingestion.structure import table_to_markdown
 from backend.app.models.schemas import Chunk
 
 # Splits after sentence-ending punctuation, only when followed by a capital letter/digit
@@ -68,10 +69,11 @@ class PageAwareChunker:
         current_section = "Unknown"
 
         for page in pages:
-            if not page.text.strip():
+            if not page.text.strip() and not page.tables and not page.figures:
                 continue
 
             page_chunk_index = 0
+            # A page can hold only a table or a full-page figure; its body text is then empty but it still yields chunks.
             for section, run_text in self._section_runs(page.text, section_detector, current_section):
                 # Once References has started, pin the section there rather than letting
                 # a numbered appendix/checklist item (e.g. a NeurIPS "2. Limitations"
@@ -92,7 +94,46 @@ class PageAwareChunker:
                     ))
                     page_chunk_index += 1
 
+            # No References guard here: a table or figure after the bibliography is an appendix item, not a citation.
+            chunks += self._structural_chunks(document_id, page, current_section)
+
         return chunks
+
+    def _structural_chunks(self, document_id: str, page: PageText, section: str) -> list[Chunk]:
+        """One chunk per figure (caption + in-figure text) and one or more per table (caption + Markdown grid).
+        A long table is split by rows, repeating the caption and header so every part reads on its own."""
+        out: list[Chunk] = []
+        for n, fig in enumerate(page.figures):
+            text = fig.caption + (f"\nText in the figure: {fig.figure_text}" if fig.figure_text else "")
+            out.append(Chunk(
+                chunk_id=f"{document_id}_p{page.page_number}_f{n}", document_id=document_id,
+                page_number=page.page_number, section=section, text=text, token_count=count_tokens(text),
+                chunk_type="figure", label=fig.label, image_path=fig.image_path,
+            ))
+        part = 0
+        for tb in page.tables:
+            header, rows = tb.rows[0], tb.rows[1:]
+            prefix = tb.caption or tb.label
+            budget = max(self.chunk_size - count_tokens(prefix) - count_tokens(table_to_markdown([header])), 60)
+            groups, current, used = [], [], 0
+            for r in rows:
+                t = count_tokens(" | ".join(r))
+                if current and used + t > budget:
+                    groups.append(current)
+                    current, used = [], 0
+                current.append(r)
+                used += t
+            if current or not groups:
+                groups.append(current)
+            for g in groups:
+                text = f"{prefix}\n{table_to_markdown([header] + g)}"
+                out.append(Chunk(
+                    chunk_id=f"{document_id}_p{page.page_number}_t{part}", document_id=document_id,
+                    page_number=page.page_number, section=section, text=text, token_count=count_tokens(text),
+                    chunk_type="table", label=tb.label,
+                ))
+                part += 1
+        return out
 
     def _section_runs(self, page_text: str, section_detector: SectionDetector,
                        starting_section: str) -> list[tuple[str, str]]:

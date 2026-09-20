@@ -34,7 +34,8 @@ def load_chunks(processed_dir: Path) -> list[Chunk]:
             # and routinely outrank real evidence in retrieval, but a reference-list line
             # is never itself usable evidence for a claim — exclude from the search index.
             # They stay in data/processed/*.json for provenance/completeness.
-            if c.get("section") == "References":
+            # Text only: a table or figure that comes after the bibliography is an appendix item, not a citation.
+            if c.get("section") == "References" and c.get("chunk_type", "text") == "text":
                 continue
             chunks.append(Chunk(**c))
     return chunks

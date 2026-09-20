@@ -103,3 +103,27 @@
 .evidence-empty {
   color: var(--text-secondary);
 }
+
+.evidence-type-tag {
+  font-weight: 600;
+  color: var(--accent, var(--text-primary));
+}
+
+.evidence-figure {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  margin: 0 0 12px;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.3));
+  border-radius: 6px;
+  background: #fff;
+  object-fit: contain;
+}
+
+/* Tables are Markdown grids: keep the columns aligned instead of re-wrapping them as prose. */
+.evidence-table {
+  white-space: pre;
+  overflow-x: auto;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}

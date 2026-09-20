@@ -4,6 +4,7 @@ import type { EvaluationSummary } from "../types/api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
 import BarChart from "../components/BarChart";
+import RagEvalSections from "../components/RagEvalSections";
 import { formatPercent } from "../utils/format";
 import "./Evaluation.css";
 
@@ -100,14 +101,16 @@ export default function Evaluation() {
             </div>
           )}
 
-          {!summary.retrieval_metrics && (
+          {summary.rag_eval && <RagEvalSections data={summary.rag_eval} />}
+
+          {!summary.retrieval_metrics && !summary.rag_eval?.retrieval && (
             <p className="eval-note">
               Retrieval quality (Recall@k, MRR, nDCG) has not been measured: it needs labelled
               relevance judgements, which this corpus does not have yet.
             </p>
           )}
 
-          {summary.retrieval_metrics && (
+          {summary.retrieval_metrics && !summary.rag_eval?.retrieval && (
             <div className="eval-section">
               <h3>Retrieval</h3>
               <div className="eval-stats-grid">

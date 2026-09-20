@@ -1,5 +1,6 @@
 import { useEvidenceViewer } from "./EvidenceViewerContext";
 import { ClaimStatusBadge } from "./StatusBadge";
+import { API_BASE_URL } from "../api/client";
 import "./EvidenceViewer.css";
 
 const STOPWORDS = new Set([
@@ -88,6 +89,12 @@ export default function EvidenceViewer() {
           <>
             <h3>{item.document_title}</h3>
             <div className="evidence-meta">
+              {item.chunk_type && item.chunk_type !== "text" && (
+                <>
+                  <span className="evidence-type-tag">{item.label ?? item.chunk_type}</span>
+                  <span className="evidence-meta-sep">/</span>
+                </>
+              )}
               <span>Page {item.page_number}</span>
               <span className="evidence-meta-sep">/</span>
               <span>{item.section || "Unlabeled section"}</span>
@@ -99,7 +106,15 @@ export default function EvidenceViewer() {
               )}
             </div>
 
-            <div className="evidence-block">
+            {item.image_url && (
+              <img
+                className="evidence-figure"
+                src={`${API_BASE_URL}${item.image_url}`}
+                alt={item.label ? `${item.label} from ${item.document_title}` : "Figure from the paper"}
+                loading="lazy"
+              />
+            )}
+            <div className={`evidence-block${item.chunk_type === "table" ? " evidence-table" : ""}`}>
               {renderHighlightedText(item.text, relatedClaims[0]?.text)}
             </div>
 

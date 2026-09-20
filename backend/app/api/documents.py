@@ -138,7 +138,10 @@ def _index_one_document(request: Request, meta: DocumentMetadata) -> IndexResult
         db.upsert_document(meta)
         return IndexResult(document_id=meta.document_id, status=meta.status, message=meta.error_message)
 
-    pages = loader.load(str(pdf_path))
+    # Structure-aware: tables and figures become their own chunks (same as scripts/ingest.py).
+    pages = loader.load_structured(
+        str(pdf_path), meta.document_id, settings.repo_root / "data" / "figures", settings.repo_root
+    )
 
     extractor = MetadataExtractor()
     extracted = extractor.extract(str(pdf_path), pages)
@@ -172,7 +175,8 @@ def _index_one_document(request: Request, meta: DocumentMetadata) -> IndexResult
     # routinely outrank real evidence in retrieval, but a reference-list line is never
     # itself usable evidence for a claim — exclude from the search index (they're still
     # counted in meta.num_chunks / kept in the chunk record for provenance).
-    indexable_chunks = [c for c in chunks if c.section != "References"]
+    # Text only: a table or figure after the bibliography is an appendix item, not a citation.
+    indexable_chunks = [c for c in chunks if not (c.section == "References" and c.chunk_type == "text")]
     texts = [c.text for c in indexable_chunks]
     vectors = embedding_model.encode(texts) if texts else None
 

@@ -91,6 +91,9 @@ export interface EvidenceItem {
   section: string;
   text: string;
   score?: number;
+  chunk_type?: "text" | "table" | "figure";
+  label?: string | null;
+  image_url?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -234,12 +237,81 @@ export interface CitationComparison {
   configs: CitationConfigResult[];
 }
 
+/** A metric with its 95% bootstrap interval, as written by scripts/eval_retrieval.py. */
+export interface MetricWithCI {
+  mean: number;
+  ci95: [number, number];
+}
+
+export interface RetrievalGroup {
+  n: number;
+  "recall@1"?: MetricWithCI;
+  "recall@3"?: MetricWithCI;
+  "recall@5"?: MetricWithCI;
+  "recall@10"?: MetricWithCI;
+  mrr?: MetricWithCI;
+  "ndcg@10"?: MetricWithCI;
+}
+
+export interface RetrievalEval {
+  eval_set: { n: number; papers: number; by_type: Record<string, number> };
+  corpus_chunks: number;
+  /** strategy name -> group ("chunk/all", "paper/all", "chunk/type=table", "chunk/hard", ...) -> metrics */
+  arms: Record<string, Record<string, RetrievalGroup | number>>;
+  caveats: string[];
+}
+
+export interface RagasMetricSummary {
+  mean: number | null;
+  n_scored: number;
+  n_failed: number;
+}
+
+export interface RagasModeSummary {
+  n_questions: number;
+  n_judged: number;
+  ragas: Record<string, RagasMetricSummary>;
+  by_type: Record<string, Record<string, number | null>>;
+  citations: Record<string, number | null>;
+  retrieval: Record<string, number | null>;
+  latency_ms: Record<string, number>;
+}
+
+export interface JudgeValidity {
+  [metric: string]: {
+    /** which input was made wrong for the negative control: "context" | "question" | "reference" */
+    negative_control: string;
+    positive_mean: number | null;
+    negative_mean: number | null;
+    gap: number | null;
+    /** true when the judge scores the right case at least 0.4 above the wrong one */
+    separates: boolean;
+    pairs_ranked_correctly: number;
+    n: number;
+    n_positive_scored: number;
+    n_negative_scored: number;
+  };
+}
+
+export interface RagasEval {
+  judge: string;
+  modes: Record<string, RagasModeSummary>;
+  judge_validity?: JudgeValidity;
+  caveats: string[];
+}
+
+export interface RagEval {
+  retrieval?: RetrievalEval;
+  ragas?: RagasEval;
+}
+
 export interface EvaluationSummary {
   evaluated: boolean;
   retrieval_metrics?: RetrievalMetrics;
   generation_metrics?: GenerationMetrics;
   latency_by_mode: LatencyBenchmarkEntry[];
   citation_comparison?: CitationComparison;
+  rag_eval?: RagEval | null;
   variant: string;
   note?: string;
 }

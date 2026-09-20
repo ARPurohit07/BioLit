@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -94,6 +94,9 @@ class Chunk(BaseModel):
     section: str
     text: str
     token_count: int
+    chunk_type: str = "text"          # "text" | "table" | "figure"
+    label: Optional[str] = None       # "Table 2" / "Figure 3" for structural chunks
+    image_path: Optional[str] = None  # repo-relative PNG crop of a figure
 
 
 class EvidenceItem(BaseModel):
@@ -106,6 +109,9 @@ class EvidenceItem(BaseModel):
     section: str
     text: str
     score: Optional[float] = None
+    chunk_type: str = "text"          # "text" | "table" | "figure"
+    label: Optional[str] = None       # "Table 2" / "Figure 3"
+    image_url: Optional[str] = None   # served by the backend under /figures/, for figure chunks
 
 
 # ---------------------------------------------------------------------------
@@ -254,6 +260,9 @@ class EvaluationSummary(BaseModel):
     generation_metrics: Optional[GenerationMetrics] = None
     latency_by_mode: list[LatencyBenchmarkEntry] = Field(default_factory=list)
     citation_comparison: Optional[CitationComparison] = None
+    # Labelled-retrieval, RAGAS and judge-validity results from scripts/eval_*.py, passed through as written:
+    # {"retrieval": {...}, "ragas": {...}, "eval_set": [...]}. Absent keys mean "not run".
+    rag_eval: Optional[dict[str, Any]] = None
     variant: str  # e.g. "base_rag", "finetuned_rag", "finetuned_no_rag"
     note: Optional[str] = None
 

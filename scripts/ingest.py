@@ -44,7 +44,7 @@ def process_pdf(pdf_path: Path, loader: PDFLoader, extractor: MetadataExtractor,
             "status": "scanned_needs_ocr", "chunks": [],
         }
 
-    pages = loader.load(str(pdf_path))
+    pages = loader.load_structured(str(pdf_path), document_id, REPO_ROOT / "data" / "figures", REPO_ROOT)
     metadata = extractor.extract(str(pdf_path), pages)
     chunks = chunker.chunk_document(document_id, pages, section_detector)
 
@@ -61,6 +61,7 @@ def process_pdf(pdf_path: Path, loader: PDFLoader, extractor: MetadataExtractor,
             {
                 "chunk_id": c.chunk_id, "document_id": c.document_id, "page_number": c.page_number,
                 "section": c.section, "text": c.text, "token_count": c.token_count,
+                "chunk_type": c.chunk_type, "label": c.label, "image_path": c.image_path,
             }
             for c in chunks
         ],
@@ -95,6 +96,7 @@ def main() -> None:
         return
 
     n_files = n_scanned = n_pages = n_chunks = n_failed = 0
+    type_counts: dict[str, int] = {}
     t0 = time.time()
 
     for pdf_path in pdf_paths:
@@ -106,12 +108,18 @@ def main() -> None:
             continue
 
         out_path = output_dir / f"{record['document_id']}.json"
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(record, f, indent=2, ensure_ascii=False)
+        try:
+            out_path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
+        except (UnicodeEncodeError, OSError) as exc:
+            print(f"  FAILED {pdf_path.name}: could not write {out_path.name}: {exc}")
+            n_failed += 1
+            continue
 
         n_files += 1
         n_pages += record["num_pages"]
         n_chunks += len(record["chunks"])
+        for c in record["chunks"]:
+            type_counts[c.get("chunk_type", "text")] = type_counts.get(c.get("chunk_type", "text"), 0) + 1
         if record["status"] == "scanned_needs_ocr":
             n_scanned += 1
         print(f"  {pdf_path.name} -> {out_path.name} "
@@ -122,6 +130,7 @@ def main() -> None:
     print(f"{'files processed':<20}{n_files}")
     print(f"{'pages':<20}{n_pages}")
     print(f"{'chunks':<20}{n_chunks}")
+    print(f"{'  by type':<20}{type_counts}")
     print(f"{'scanned (skipped)':<20}{n_scanned}")
     print(f"{'failed':<20}{n_failed}")
     print(f"{'elapsed (s)':<20}{elapsed:.2f}")

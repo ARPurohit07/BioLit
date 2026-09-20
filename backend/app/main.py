@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend.app import db
 from backend.app.api.documents import router as documents_router
@@ -173,6 +174,11 @@ app.add_middleware(
 app.include_router(documents_router)
 app.include_router(query_router)
 app.include_router(evaluation_router)
+
+# Figure crops made at ingestion time, shown next to a figure's caption in the evidence viewer.
+_figures_dir = get_settings().repo_root / "data" / "figures"
+_figures_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/figures", StaticFiles(directory=str(_figures_dir)), name="figures")
 
 
 @app.exception_handler(Exception)

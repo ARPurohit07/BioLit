@@ -40,6 +40,21 @@ def _load_result_files() -> list[dict]:
     return results
 
 
+def _load_rag_eval() -> dict | None:
+    """experiments/eval/{retrieval_eval,ragas_summary}.json, written by scripts/eval_retrieval.py and eval_ragas.py."""
+    base = get_settings().repo_root / "experiments" / "eval"
+    out: dict = {}
+    for filename, key in (("retrieval_eval.json", "retrieval"), ("ragas_summary.json", "ragas")):
+        try:
+            with open(base / filename, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                out[key] = data
+        except (OSError, ValueError):
+            continue
+    return out or None
+
+
 def _load_citation_comparison() -> CitationComparison | None:
     """experiments/finetuned/citation_comparison.json, written by scripts/summarize_citation_evals.py."""
     path = get_settings().repo_root / "experiments" / "finetuned" / "citation_comparison.json"
@@ -54,7 +69,8 @@ def _load_citation_comparison() -> CitationComparison | None:
 def get_evaluation_summary() -> EvaluationSummary:
     result_files = _load_result_files()
     citation_comparison = _load_citation_comparison()
-    if not result_files and citation_comparison is None:
+    rag_eval = _load_rag_eval()
+    if not result_files and citation_comparison is None and rag_eval is None:
         return _NOT_EVALUATED
 
     latency_entries: list[LatencyBenchmarkEntry] = []
@@ -80,7 +96,8 @@ def get_evaluation_summary() -> EvaluationSummary:
             except Exception:
                 continue
 
-    if retrieval_metrics is None and generation_metrics is None and not latency_entries and citation_comparison is None:
+    if (retrieval_metrics is None and generation_metrics is None and not latency_entries
+            and citation_comparison is None and rag_eval is None):
         note = _NOT_EVALUATED.note + " (Found result files under experiments/ but could not parse any known metrics from them.)"
         return EvaluationSummary(evaluated=False, variant="none", note=note)
 
@@ -90,6 +107,7 @@ def get_evaluation_summary() -> EvaluationSummary:
         generation_metrics=generation_metrics,
         latency_by_mode=latency_entries,
         citation_comparison=citation_comparison,
+        rag_eval=rag_eval,
         variant=variant,
         note=None,
     )

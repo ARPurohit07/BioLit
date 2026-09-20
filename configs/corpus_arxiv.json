@@ -1,0 +1,269 @@
+{
+  "papers": [
+    {
+      "id": "1902.04166",
+      "title": "WideDTA: prediction of drug-target binding affinity",
+      "year": 2019,
+      "topic": "binding affinity"
+    },
+    {
+      "id": "1903.04571",
+      "title": "Detecting drug-drug interactions using artificial neural networks and classic graph similarity measures",
+      "year": 2019,
+      "topic": "drug-drug interaction"
+    },
+    {
+      "id": "1909.06609",
+      "title": "Learning Interpretable Disease Self-Representations for Drug Repositioning",
+      "year": 2019,
+      "topic": "drug repurposing"
+    },
+    {
+      "id": "1911.10313",
+      "title": "DTF: Deep Tensor Factorization for Predicting Anticancer Drug Synergy",
+      "year": 2019,
+      "topic": "drug synergy"
+    },
+    {
+      "id": "2004.14842",
+      "title": "Modeling Pharmacological Effects with Multi-Relation Unsupervised Graph Embedding",
+      "year": 2020,
+      "topic": "drug repurposing"
+    },
+    {
+      "id": "2006.07021",
+      "title": "A benchmark study on reliable molecular supervised learning via Bayesian learning",
+      "year": 2020,
+      "topic": "virtual screening"
+    },
+    {
+      "id": "2010.11711",
+      "title": "Multi-view Graph Contrastive Representation Learning for Drug-Drug Interaction Prediction",
+      "year": 2020,
+      "topic": "drug-drug interaction"
+    },
+    {
+      "id": "2011.04651",
+      "title": "Discovering Synergistic Drug Combinations for COVID with Biological Bottleneck Models",
+      "year": 2020,
+      "topic": "drug-target interaction"
+    },
+    {
+      "id": "2105.07082",
+      "title": "Interpretable Drug Synergy Prediction with Graph Neural Networks for Human-AI Collaboration in Healthcare",
+      "year": 2021,
+      "topic": "drug synergy"
+    },
+    {
+      "id": "2202.01195",
+      "title": "Mitigating cold start problems in drug-target affinity prediction with interaction knowledge transferring",
+      "year": 2022,
+      "topic": "drug-target interaction"
+    },
+    {
+      "id": "2207.02724",
+      "title": "Pre-training Transformers for Molecular Property Prediction Using Reaction Prediction",
+      "year": 2022,
+      "topic": "molecular property prediction"
+    },
+    {
+      "id": "2208.14810",
+      "title": "Graph Distance Neural Networks for Predicting Multiple Drug Interactions",
+      "year": 2022,
+      "topic": "drug-drug interaction"
+    },
+    {
+      "id": "2209.13492",
+      "title": "Unraveling Key Elements Underlying Molecular Property Prediction: A Systematic Study",
+      "year": 2022,
+      "topic": "molecular property prediction"
+    },
+    {
+      "id": "2212.09400",
+      "title": "Medical Knowledge Graph QA for Drug-Drug Interaction Prediction based on Multi-hop Machine Reading Comprehension",
+      "year": 2022,
+      "topic": "drug-drug interaction"
+    },
+    {
+      "id": "2303.02405",
+      "title": "Decision Support System for Chronic Diseases Based on Drug-Drug Interactions",
+      "year": 2023,
+      "topic": "drug-drug interaction"
+    },
+    {
+      "id": "2305.14517",
+      "title": "CongFu: Conditional Graph Fusion for Drug Synergy Prediction",
+      "year": 2023,
+      "topic": "drug synergy"
+    },
+    {
+      "id": "2306.00041",
+      "title": "Causal Intervention for Measuring Confidence in Drug-Target Interaction Prediction",
+      "year": 2023,
+      "topic": "drug-target interaction"
+    },
+    {
+      "id": "2307.11694",
+      "title": "SynerGPT: In-Context Learning for Personalized Drug Synergy Prediction and Drug Design",
+      "year": 2023,
+      "topic": "drug synergy"
+    },
+    {
+      "id": "2309.11687",
+      "title": "Large-scale Pretraining Improves Sample Efficiency of Active Learning based Molecule Virtual Screening",
+      "year": 2023,
+      "topic": "virtual screening"
+    },
+    {
+      "id": "2311.12040",
+      "title": "TransCDR: a deep learning model for enhancing the generalizability of cancer drug response prediction through transfer learning and multimodal data fusion for drug representation",
+      "year": 2023,
+      "topic": "drug response prediction"
+    },
+    {
+      "id": "2311.16207",
+      "title": "ALNSynergy: a graph convolutional network with multi-representation alignment for drug synergy prediction",
+      "year": 2023,
+      "topic": "drug synergy"
+    },
+    {
+      "id": "2401.03369",
+      "title": "Multi-Modal Representation Learning for Molecular Property Prediction: Sequence, Graph, Geometry",
+      "year": 2024,
+      "topic": "molecular property prediction"
+    },
+    {
+      "id": "2404.03516",
+      "title": "Drug-target interaction prediction by integrating heterogeneous information with mutual attention network",
+      "year": 2024,
+      "topic": "drug-target interaction"
+    },
+    {
+      "id": "2404.08711",
+      "title": "Drug Repurposing for Parkinson's Disease Using Random Walk With Restart Algorithm and the Parkinson's Disease Ontology Database",
+      "year": 2024,
+      "topic": "drug repurposing"
+    },
+    {
+      "id": "2405.02628",
+      "title": "Contrastive Dual-Interaction Graph Neural Network for Molecular Property Prediction",
+      "year": 2024,
+      "topic": "molecular property prediction"
+    },
+    {
+      "id": "2407.02265",
+      "title": "DrugCLIP: Contrastive Drug-Disease Interaction For Drug Repurposing",
+      "year": 2024,
+      "topic": "drug repurposing"
+    },
+    {
+      "id": "2407.11812",
+      "title": "Boosting drug-disease association prediction for drug repositioning via dual-feature extraction and cross-dual-domain decoding",
+      "year": 2024,
+      "topic": "drug repurposing"
+    },
+    {
+      "id": "2408.15310",
+      "title": "RGDA-DDI: Residual graph attention network and dual-attention based framework for drug-drug interaction prediction",
+      "year": 2024,
+      "topic": "drug-drug interaction"
+    },
+    {
+      "id": "2410.00709",
+      "title": "Binding Affinity Prediction: From Conventional to Machine Learning-Based Approaches",
+      "year": 2024,
+      "topic": "binding affinity"
+    },
+    {
+      "id": "2501.05607",
+      "title": "Prediction of Binding Affinity for ErbB Inhibitors Using Deep Neural Network Model with Morgan Fingerprints as Features",
+      "year": 2025,
+      "topic": "binding affinity"
+    },
+    {
+      "id": "2504.05454",
+      "title": "GraphPINE: Graph Importance Propagation for Interpretable Drug Response Prediction",
+      "year": 2025,
+      "topic": "drug response prediction"
+    },
+    {
+      "id": "2504.14361",
+      "title": "Integrating Single-Cell Foundation Models with Graph Neural Networks for Drug Response Prediction",
+      "year": 2025,
+      "topic": "drug response prediction"
+    },
+    {
+      "id": "2504.16152",
+      "title": "Heterogeneous networks in drug-target interaction prediction",
+      "year": 2025,
+      "topic": "drug-target interaction"
+    },
+    {
+      "id": "2504.21065",
+      "title": "A 3D pocket-aware and affinity-guided diffusion model for lead optimization",
+      "year": 2025,
+      "topic": "binding affinity"
+    },
+    {
+      "id": "2505.05612",
+      "title": "scDrugMap: Benchmarking Large Foundation Models for Drug Response Prediction",
+      "year": 2025,
+      "topic": "drug response prediction"
+    },
+    {
+      "id": "2505.20301",
+      "title": "Sequence-Only Prediction of Binding Affinity Changes: A Robust and Interpretable Model for Antibody Engineering",
+      "year": 2025,
+      "topic": "binding affinity"
+    },
+    {
+      "id": "2505.23861",
+      "title": "BiBLDR: Bidirectional Behavior Learning for Drug Repositioning",
+      "year": 2025,
+      "topic": "drug repurposing"
+    },
+    {
+      "id": "2506.11041",
+      "title": "ChemHGNN: A Hierarchical Hypergraph Neural Network for Reaction Virtual Screening and Discovery",
+      "year": 2025,
+      "topic": "virtual screening"
+    },
+    {
+      "id": "2507.02818",
+      "title": "Genetic Features for Drug Responses in Cancer -- Investigating an Ensemble-Feature-Selection Approach",
+      "year": 2025,
+      "topic": "drug response prediction"
+    },
+    {
+      "id": "2510.19520",
+      "title": "CDI-DTI: A Strong Cross-domain Interpretable Drug-Target Interaction Prediction Framework Based on Multi-Strategy Fusion",
+      "year": 2025,
+      "topic": "drug-target interaction"
+    },
+    {
+      "id": "2510.24380",
+      "title": "APEX: Approximate-but-exhaustive search for ultra-large combinatorial synthesis libraries",
+      "year": 2025,
+      "topic": "virtual screening"
+    },
+    {
+      "id": "2511.02146",
+      "title": "Disentangling Causal Substructures for Interpretable and Generalizable Drug Synergy Prediction",
+      "year": 2025,
+      "topic": "drug synergy"
+    },
+    {
+      "id": "2512.16177",
+      "title": "Optimizing Quantum Data Embeddings for Ligand-Based Virtual Screening",
+      "year": 2025,
+      "topic": "virtual screening"
+    },
+    {
+      "id": "2606.05693",
+      "title": "MolE-RAG: Molecular Structure-Enhanced Retrieval-Augmented Generation for Chemistry",
+      "year": 2026,
+      "topic": "molecular property prediction"
+    }
+  ],
+  "note": "Papers fetched by scripts/fetch_arxiv.py. The six originals predate the script and are not listed unless re-fetched; data/raw is the source of truth for what was indexed."
+}

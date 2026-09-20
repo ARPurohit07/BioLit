@@ -6,7 +6,8 @@ chunker) stay importable on machines where PyMuPDF isn't installed yet.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 try:
     import fitz  # PyMuPDF
@@ -14,10 +15,16 @@ except ImportError:  # pragma: no cover - exercised only when PyMuPDF is missing
     fitz = None
 
 
+def _strip_surrogates(text: str) -> str:
+    return "".join(ch for ch in text if not 0xD800 <= ord(ch) <= 0xDFFF)
+
+
 @dataclass
 class PageText:
     page_number: int  # 1-indexed
     text: str
+    tables: list = field(default_factory=list)   # structure.TableBlock, set by load_structured()
+    figures: list = field(default_factory=list)  # structure.FigureBlock, set by load_structured()
 
 
 class PDFLoader:
@@ -37,6 +44,22 @@ class PDFLoader:
             for i, page in enumerate(doc):
                 text = page.get_text("text") or ""
                 pages.append(PageText(page_number=i + 1, text=text.strip()))
+        return pages
+
+    def load_structured(self, pdf_path: str, doc_key: str, figures_dir: Path, repo_root: Path) -> list[PageText]:
+        """Like load(), but tables and figures are separated from the body text (see ingestion/structure.py)."""
+        self._require_fitz()
+        from backend.app.ingestion.structure import StructureParser
+
+        parser = StructureParser(figures_dir, repo_root)
+        pages: list[PageText] = []
+        with fitz.open(pdf_path) as doc:
+            for i, page in enumerate(doc):
+                try:
+                    s = parser.parse_page(page, doc_key, i + 1)
+                    pages.append(PageText(i + 1, s.body_text, s.tables, s.figures))
+                except Exception:  # a page the parser cannot handle keeps its plain text: never lose content
+                    pages.append(PageText(i + 1, _strip_surrogates(page.get_text("text") or "").strip()))
         return pages
 
     def is_scanned(self, pdf_path: str) -> bool:

@@ -53,3 +53,25 @@ def test_malformed_comparison_file_is_not_treated_as_a_result(monkeypatch, tmp_p
     d.mkdir(parents=True)
     (d / "citation_comparison.json").write_text('{"n": "not-a-number", "configs": [{}]}', encoding="utf-8")
     assert evaluation.get_evaluation_summary().evaluated is False
+
+
+def test_rag_eval_results_are_passed_through_and_missing_ones_are_absent(monkeypatch, tmp_path):
+    _use_repo(monkeypatch, tmp_path)
+    d = tmp_path / "experiments" / "eval"
+    d.mkdir(parents=True)
+    (d / "retrieval_eval.json").write_text(json.dumps({"eval_set": {"n": 3}, "arms": {"bm25": {}}}), encoding="utf-8")
+
+    summary = evaluation.get_evaluation_summary()
+
+    assert summary.evaluated is True
+    assert summary.rag_eval["retrieval"]["eval_set"]["n"] == 3
+    assert "ragas" not in summary.rag_eval          # RAGAS has not been run: it is absent, never zero-filled
+    assert summary.variant == "unknown"             # a results file must not rename the model variant
+
+
+def test_unreadable_rag_eval_files_are_ignored(monkeypatch, tmp_path):
+    _use_repo(monkeypatch, tmp_path)
+    d = tmp_path / "experiments" / "eval"
+    d.mkdir(parents=True)
+    (d / "ragas_summary.json").write_text("{not json", encoding="utf-8")
+    assert evaluation.get_evaluation_summary().evaluated is False
