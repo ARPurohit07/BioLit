@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 import statistics
 import sys
 import time
@@ -36,6 +37,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from backend.app.config.settings import get_settings  # noqa: E402
 from backend.app.evaluation.retrieval_metrics import _mrr, _ndcg_at_k  # noqa: E402
+from backend.app.ingestion.chunker import count_tokens  # noqa: E402
 from backend.app.retrieval.bm25 import BM25Index  # noqa: E402
 from backend.app.retrieval.embeddings import EmbeddingModel  # noqa: E402
 from backend.app.retrieval.hybrid import reciprocal_rank_fusion  # noqa: E402
@@ -45,6 +47,55 @@ from backend.app.retrieval.vector_store import FAISSVectorStore  # noqa: E402
 EVAL_SET = REPO_ROOT / "experiments" / "eval" / "eval_set.jsonl"
 OUT = REPO_ROOT / "experiments" / "eval" / "retrieval_eval.json"
 KS = (1, 3, 5, 10)
+
+# Chunk-id-free metrics: comparable across chunking strategies since they never look at chunk_id.
+_STOPWORDS = {
+    "the", "and", "for", "are", "was", "were", "with", "that", "this", "these", "those", "from",
+    "have", "has", "had", "not", "but", "can", "which", "when", "where", "who", "whom", "how",
+    "what", "why", "does", "did", "using", "used", "use", "into", "onto", "than", "then", "them",
+    "their", "there", "here", "its", "his", "her", "our", "your", "you", "they", "she", "him",
+    "been", "being", "will", "would", "could", "should", "also", "such", "over", "under", "each",
+    "any", "all", "both", "more", "most", "some", "one", "two", "via", "per", "out", "about",
+}
+_WORD_RE = re.compile(r"[a-z0-9]+")
+_NUM_RE = re.compile(r"\d+\.?\d*")
+
+
+def _content_words(text: str) -> set[str]:
+    return {w for w in _WORD_RE.findall(text.lower()) if len(w) >= 3 and w not in _STOPWORDS}
+
+
+def granularity_neutral_score(chunks: list, item: dict) -> dict:
+    """Score the top-5 retrieved chunks against the reference answer, without touching chunk_id."""
+    top5 = chunks[:5]
+    context = "\n".join(c.text for c in top5)
+    context_words = set(_WORD_RE.findall(context.lower()))
+
+    words = _content_words(item["reference_answer"])
+    answer_coverage = (sum(1 for w in words if w in context_words) / len(words)) if words else 1.0
+
+    ref_nums = _NUM_RE.findall(item["reference_answer"])
+    number_covered = None
+    if ref_nums:
+        number_covered = all(re.search(rf"\b{re.escape(n)}\b", context) for n in ref_nums)
+
+    return {
+        "answer_coverage": answer_coverage,
+        "number_covered": number_covered,
+        "context_tokens": count_tokens(context),
+    }
+
+
+def summarise_granularity_neutral(gn_rows: list[dict]) -> dict:
+    coverages = [r["answer_coverage"] for r in gn_rows]
+    num_rows = [r["number_covered"] for r in gn_rows if r["number_covered"] is not None]
+    tokens = [r["context_tokens"] for r in gn_rows]
+    return {
+        "answer_coverage": round(statistics.fmean(coverages), 4),
+        "answer_covered@0.8": round(sum(1 for c in coverages if c >= 0.8) / len(coverages), 4),
+        "number_coverage": {"mean": round(statistics.fmean(num_rows), 4) if num_rows else None, "n": len(num_rows)},
+        "context_tokens": round(statistics.fmean(tokens), 1),
+    }
 
 
 def build_components():
@@ -91,7 +142,8 @@ def rank_all(question: str, emb, vs, bm, rr, cfg: dict) -> dict[str, tuple[list,
 
 def ranked_hits(ranked_chunks: list, item: dict, level: str) -> list[bool]:
     if level == "chunk":
-        return [c.chunk_id == item["chunk_id"] for c in ranked_chunks]
+        relevant = set(item["chunk_ids"]) if item.get("chunk_ids") else {item["chunk_id"]}
+        return [c.chunk_id in relevant for c in ranked_chunks]
     seen, hits = set(), []                      # paper level: score each paper once, at its best-ranked chunk
     for c in ranked_chunks:
         if c.document_id in seen:
@@ -134,10 +186,12 @@ def main() -> int:
     overlap_median = statistics.median(i["question_chunk_overlap"] for i in items)
     rows: dict[str, dict[str, list]] = defaultdict(lambda: defaultdict(list))      # arm -> group -> [per-query dict]
     latency: dict[str, list[float]] = defaultdict(list)
+    gn_rows: dict[str, list[dict]] = defaultdict(list)
     for n, item in enumerate(items, 1):
         ranked = rank_all(item["question"], emb, vs, bm, rr, settings.retrieval_config)
         for arm, (chunks, ms) in ranked.items():
             latency[arm].append(ms)
+            gn_rows[arm].append(granularity_neutral_score(chunks, item))
             for level in ("chunk", "paper"):
                 row = per_query(ranked_hits(chunks, item, level))
                 rows[arm][f"{level}/all"].append(row)
@@ -151,6 +205,7 @@ def main() -> int:
     for arm in rows:
         arms[arm] = {group: summarise(r) for group, r in rows[arm].items()}
         arms[arm]["latency_ms_median"] = round(statistics.median(latency[arm]), 1)
+        arms[arm]["granularity_neutral"] = summarise_granularity_neutral(gn_rows[arm])
 
     balanced = arms["hybrid+rerank"]["chunk/all"]
     result = {
@@ -181,6 +236,13 @@ def main() -> int:
         print(f"{arm:<15}{a['recall@1']['mean']:>7.2f}{a['recall@5']['mean']:>7.2f}{a['recall@10']['mean']:>7.2f}"
               f"{a['mrr']['mean']:>7.2f}{a['ndcg@10']['mean']:>9.2f}   {p['recall@1']['mean']:.2f} / {p['recall@5']['mean']:.2f}"
               f"          {arms[arm]['latency_ms_median']:.0f}")
+
+    print(f"\n{'strategy':<15}{'ans_cov':>9}{'cov@0.8':>9}{'num_cov':>9}{'ctx_tok':>9}")
+    for arm in ("bm25", "dense", "hybrid", "hybrid+rerank"):
+        g = arms[arm]["granularity_neutral"]
+        num_cov = "n/a" if g["number_coverage"]["mean"] is None else f"{g['number_coverage']['mean']:.2f}"
+        print(f"{arm:<15}{g['answer_coverage']:>9.2f}{g['answer_covered@0.8']:>9.2f}{num_cov:>9}{g['context_tokens']:>9.0f}")
+
     print(f"\nwrote {OUT.relative_to(REPO_ROOT).as_posix()}")
     return 0
 

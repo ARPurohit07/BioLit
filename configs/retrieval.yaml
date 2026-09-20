@@ -1,9 +1,12 @@
 # Retrieval / RAG configuration for BioLit.
 
 chunking:
-  chunk_size: 400          # target tokens per chunk
+  chunk_size: 400          # target tokens per chunk (fixed-packing fallback only)
   chunk_overlap: 60        # token overlap between adjacent chunks
   min_chunk_tokens: 40     # drop/merge chunks smaller than this
+  semantic: false            # split text at embedding topic-shift boundaries instead of packing to chunk_size
+  max_chunk_tokens: 220     # hard cap per chunk when semantic is on
+  breakpoint_percentile: 80 # sentence-pair distance percentile that triggers a new chunk
 
 hybrid:
   dense_top_k: 20

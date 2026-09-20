@@ -80,6 +80,7 @@ def main() -> None:
 
     settings = get_settings()
     chunking_cfg = settings.retrieval_config.get("chunking", {})
+    embedding_cfg = settings.models_config.get("embedding_model", {})
 
     loader = PDFLoader()
     extractor = MetadataExtractor()
@@ -88,6 +89,10 @@ def main() -> None:
         chunk_size=chunking_cfg.get("chunk_size", 400),
         chunk_overlap=chunking_cfg.get("chunk_overlap", 60),
         min_chunk_tokens=chunking_cfg.get("min_chunk_tokens", 40),
+        semantic=chunking_cfg.get("semantic", True),
+        max_chunk_tokens=chunking_cfg.get("max_chunk_tokens", 220),
+        breakpoint_percentile=chunking_cfg.get("breakpoint_percentile", 80),
+        embedding_model_name=embedding_cfg.get("name", "BAAI/bge-small-en-v1.5"),
     )
 
     pdf_paths = sorted(input_dir.glob("*.pdf"))
