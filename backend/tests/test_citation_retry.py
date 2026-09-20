@@ -93,3 +93,51 @@ def test_is_abstention_only_for_answers_with_nothing_to_cite():
     assert not is_abstention("Drug X reduced tumor size in mice. The evidence does not specify dosing.")
     assert not is_abstention(UNCITED)
     assert not is_abstention("")
+
+
+# ---------------------------------------------------------------- an answer that says nothing
+from backend.app.generation.rag_pipeline import _NO_ANSWER, has_substance  # noqa: E402
+
+
+def test_marker_only_replies_have_no_substance():
+    assert not has_substance("[4]")
+    assert not has_substance("[2][3]")
+    assert not has_substance("SUPPORTED CLAIM: [1].")
+    assert not has_substance("")
+    assert has_substance("GEM reaches 0.856 on BACE [4].")
+    assert has_substance("six [2]")
+
+
+def test_a_marker_only_reply_is_retried_and_a_real_answer_is_kept():
+    pipeline, client = _pipeline("GEM reaches 0.856 on the BACE dataset [4].")
+    out = pipeline._ensure_substance("USER", "SYSTEM", "[4]")
+    assert out == "GEM reaches 0.856 on the BACE dataset [4]."
+    assert len(client.prompts) == 1 and "'[4]'" in client.prompts[0] and "USER" in client.prompts[0]
+
+
+def test_a_reply_that_stays_empty_becomes_an_honest_no_answer_not_an_empty_string():
+    pipeline, client = _pipeline("[4]", "[4]")
+    assert pipeline._ensure_substance("u", "s", "[4]") == _NO_ANSWER
+    assert len(client.prompts) == 2                      # two attempts, no loop
+    assert is_abstention(_NO_ANSWER)                     # and it is not mistaken for a claim to verify
+
+
+def test_an_answer_with_content_is_never_retried():
+    pipeline, client = _pipeline("must not be used")
+    assert pipeline._ensure_substance("u", "s", CITED) == CITED
+    assert client.prompts == []
+
+
+def test_ensure_citations_also_guards_against_empty_answers():
+    pipeline, _ = _pipeline(CITED)
+    assert pipeline._ensure_citations("u", "s", "[1]", _evidence()) == CITED
+
+
+def test_no_prompt_contains_an_example_sentence_a_small_model_could_copy_into_its_answer():
+    # "Method A improves recall over baseline B" was in the rules and the retry prompt, and the model sometimes appended it
+    # to real answers as if it were a finding. Instructions describe the format; they must not contain a sentence to copy.
+    from backend.app.generation import prompts
+
+    pipeline, _ = _pipeline()
+    for text in (prompts.CITATION_RULES, prompts.QA_RULES, pipeline._build_citation_retry_prompt("u", "a")):
+        assert "Method A" not in text

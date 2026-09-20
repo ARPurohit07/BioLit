@@ -7,8 +7,8 @@
   "arms": {
     "original": {
       "faithfulness_stock_judge": null,
-      "faithfulness_adapted_judge": 0.411,
-      "factual_correctness_f1": null,
+      "faithfulness_adapted_judge": 0.58,
+      "factual_correctness_f1": 0.221,
       "answer_words_median": 66,
       "reference_words_median": 24,
       "share_with_labels": 0.256,
@@ -18,8 +18,8 @@
     },
     "before": {
       "faithfulness_stock_judge": null,
-      "faithfulness_adapted_judge": 0.45,
-      "factual_correctness_f1": 0.246,
+      "faithfulness_adapted_judge": 0.595,
+      "factual_correctness_f1": 0.183,
       "answer_words_median": 58,
       "reference_words_median": 23,
       "share_with_labels": 0.172,
@@ -29,13 +29,13 @@
     },
     "after": {
       "faithfulness_stock_judge": null,
-      "faithfulness_adapted_judge": 0.489,
-      "factual_correctness_f1": 0.227,
-      "answer_words_median": 21,
+      "faithfulness_adapted_judge": 0.705,
+      "factual_correctness_f1": 0.25,
+      "answer_words_median": 35,
       "reference_words_median": 23,
       "share_with_labels": 0.0,
-      "citation_coverage": 0.821,
-      "check_source_share": 0.482,
+      "citation_coverage": 0.891,
+      "check_source_share": 0.28,
       "source_chunk_in_context": 0.793
     }
   },
@@ -45,25 +45,25 @@
     },
     "faithfulness_adapted_judge": {
       "n_pairs": 27,
-      "mean_diff": 0.041,
+      "mean_diff": 0.125,
       "ci95": [
-        -0.081,
-        0.158
+        -0.038,
+        0.283
       ],
-      "improved": 10,
+      "improved": 8,
       "worse": 6,
-      "same": 11
+      "same": 13
     },
     "factual_correctness_f1": {
       "n_pairs": 27,
-      "mean_diff": -0.003,
+      "mean_diff": 0.056,
       "ci95": [
-        -0.145,
-        0.124
+        -0.03,
+        0.151
       ],
-      "improved": 9,
+      "improved": 7,
       "worse": 6,
-      "same": 12
+      "same": 14
     }
   },
   "note": "Same fresh questions in both arms; a paired bootstrap interval that includes 0 means the change is not distinguishable from noise at this sample size. The adapted judge is only meaningful alongside judge_controls_adapted.json."

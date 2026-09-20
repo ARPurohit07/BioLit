@@ -258,3 +258,25 @@ def test_paired_difference_uses_only_questions_scored_in_both_arms(ab):
 def test_the_adapted_judge_instruction_keeps_numbers_and_names_strict(rg):
     text = rg.ADAPTED_NLI
     assert "paraphrase" in text and "must match the context" in text and "contradicts" in text
+
+
+# ------------------------------------------------------------------ what the judge is shown
+def test_citation_markers_and_labels_are_removed_before_judging(rg):
+    assert rg.clean_answer("SUPPORTED CLAIM: Adam is used to minimize Lbce [2] in the model.") == "Adam is used to minimize Lbce in the model."
+    assert rg.clean_answer("The AUC is 0.97 [1][3].") == "The AUC is 0.97."
+    assert rg.clean_answer("Both methods agree [1, 2].") == "Both methods agree."
+
+
+def test_a_claim_the_pipeline_flagged_as_unverified_stays_in_the_judged_text(rg):
+    flagged = "The drug cures the disease *(unsupported — could not be verified against retrieved evidence)*"
+    out = rg.clean_answer(flagged)
+    assert out == "The drug cures the disease"                 # the note goes, the claim stays and is still scored
+    assert "unsupported" not in out
+
+
+def test_an_answer_that_is_only_a_marker_is_empty_and_scores_zero_not_missing(rg):
+    assert rg.is_empty_answer("[4]") and rg.is_empty_answer("[2][3]") and rg.is_empty_answer("SUPPORTED CLAIM: [1].")
+    assert not rg.is_empty_answer("85.6 [1][3]") and not rg.is_empty_answer("2020")
+
+    rows = [{"question": "q", "answer": "[4]", "contexts": ["c"], "reference_answer": "r"}]
+    assert rg._score(rows, {}, ("faithfulness", "factual_correctness")) == [{"faithfulness": 0.0, "factual_correctness": 0.0}]

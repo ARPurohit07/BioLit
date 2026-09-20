@@ -51,6 +51,16 @@ _UNSUPPORTED_LIKE = {ClaimStatus.UNSUPPORTED, ClaimStatus.CONTRADICTED}
 _MARKER_RE = re.compile(r"\[(\d+(?:\s*,\s*\d+)*)\]")
 
 
+_NO_ANSWER = "The retrieved evidence does not state the answer to this question."
+
+
+def has_substance(answer: str) -> bool:
+    """False for a reply that is only citation markers, labels or punctuation (e.g. "[4]"): it answers nothing."""
+    bare = _MARKER_RE.sub("", answer)
+    bare = re.sub(r"SUPPORTED CLAIM|INTERPRETATION|LIMITATION", "", bare, flags=re.IGNORECASE)
+    return bool(re.search(r"[A-Za-z0-9]{2,}", bare))
+
+
 def _has_valid_citation(answer: str, evidence: list[EvidenceItem]) -> bool:
     """True if the answer contains at least one [n] marker that refers to a real evidence block."""
     valid = {e.citation_id for e in evidence}
@@ -209,10 +219,32 @@ class RAGPipeline:
             f"{user_prompt}\n\n---\n"
             f"Your previous answer contained no [n] citation markers:\n{answer}\n\n"
             "Rewrite it so that every factual sentence ends with the [n] marker(s) of the numbered "
-            "evidence block(s) that support it, placed immediately before the final period "
-            "(e.g. 'Method A improves recall over baseline B [2].'). Keep the content; do not add "
-            "facts the evidence does not state. Output only the rewritten answer."
+            "evidence block(s) that support it, placed immediately before the final period. "
+            "Keep the content; do not add facts the evidence does not state. Output only the "
+            "rewritten answer."
         )
+
+    def _ensure_substance(self, user_prompt: str, system_prompt: str, answer: str) -> str:
+        """A small model sometimes replies with nothing but a citation marker ("[4]"), most often when the evidence is a
+        table. Retry twice with a reminder; if it still says nothing, say so honestly instead of returning an empty reply."""
+        if has_substance(answer):
+            return answer
+        for attempt in range(2):
+            try:
+                revised = strip_regeneration_scaffold(
+                    self.ollama_client.generate(
+                        f"{user_prompt}\n\n---\nYour previous reply was only {answer.strip()!r}, which does not answer the "
+                        "question. Reply again with one or two complete sentences that state the answer in words, using the "
+                        "evidence, and end each sentence with its [n] marker.",
+                        system=system_prompt,
+                        temperature=0.0 if attempt == 0 else 0.4,
+                    )
+                )
+            except Exception:
+                break
+            if has_substance(revised):
+                return revised
+        return _NO_ANSWER
 
     def _ensure_citations(
         self, user_prompt: str, system_prompt: str, answer: str, evidence: list[EvidenceItem]
@@ -223,6 +255,7 @@ class RAGPipeline:
         An honest "the evidence does not specify X" answer has nothing to cite, so it is left alone, and a
         retry that still fails to cite is discarded rather than replacing an answer we already have.
         """
+        answer = self._ensure_substance(user_prompt, system_prompt, answer)
         cfg = self.config.get("citation_retry", {})
         attempts = int(cfg.get("max_attempts", 1)) if cfg.get("enabled", True) else 0
         for attempt in range(attempts):

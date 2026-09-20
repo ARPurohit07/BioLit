@@ -56,6 +56,7 @@ def test_question_answering_keeps_citation_discipline_but_drops_the_labels(name,
     ):
         assert rule in system, f"{name}: missing rule {rule!r}"
     assert "Do not label them" in system
+    assert "only a citation marker is not an answer" in system     # a marker alone must never count as an answer
     assert "Explicitly label each claim" not in system       # the mandatory-label rule is gone for QA
     assert "[1]" in user and "[2]" in user
 
@@ -69,3 +70,12 @@ def test_rules_do_not_cap_answer_length():
     # The dataset builder's STYLE_HINT limits answers to 1-5 sentences; that is QA-shaped and must NOT leak
     # into summaries, comparisons or literature-review sections.
     assert "1 to 5 sentences" not in prompts.CITATION_RULES
+
+
+def test_qa_rules_tell_the_model_to_pick_the_block_that_matches_the_question():
+    # Measured failure: with the right chunk in context the model still answered with a related number from another
+    # block. These two rules target that; see README section 9.3.
+    rules = prompts.QA_RULES
+    assert "names the exact subject of the question" in rules
+    assert "do not answer with a related number from a different block" in rules
+    assert "copied exactly as the evidence writes it" in rules

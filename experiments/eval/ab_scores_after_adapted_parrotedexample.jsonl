@@ -1,0 +1,3 @@
+{"qid": "q001", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.5}
+{"qid": "q002", "type": "text", "faithfulness": 0.4, "factual_correctness": 0.86}
+{"qid": "q009", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.5}

@@ -36,6 +36,11 @@ EVAL_DIR = er.EVAL_DIR
 SAMPLE = EVAL_DIR / "ab_sample.json"
 OUT = EVAL_DIR / "prompt_ab.json"
 LABELS = re.compile(r"SUPPORTED CLAIM|INTERPRETATION|LIMITATION")
+# High-Faithfulness mode keeps a claim it could not verify and appends this note (or an "Unverified statements" header).
+# The note is pipeline text, not a statement about the papers, so it is removed before judging; the flagged claim itself
+# stays in the answer and is scored like any other, so the score is not flattered by dropping the claims that failed.
+PIPELINE_NOTE = re.compile(r"\s*\*\(unsupported — could not be verified against retrieved evidence\)\*|\*\*Unverified statements:\*\*")
+ARM_MODE = {"before": "balanced", "after": "balanced", "hf": "high_faithfulness"}   # hf = new prompt + High-Faithfulness mode
 
 
 def runs(arm: str) -> Path:
@@ -75,7 +80,7 @@ def generate(arm: str, n: int) -> None:
     t0 = time.time()
     for i, q in enumerate(todo, 1):
         try:
-            r = requests.post(f"{er.API}/api/query", json={"question": q["question"], "mode": "balanced"}, timeout=900)
+            r = requests.post(f"{er.API}/api/query", json={"question": q["question"], "mode": ARM_MODE[arm]}, timeout=1800)
             r.raise_for_status()
             d = r.json()
         except Exception as exc:
@@ -92,7 +97,7 @@ def generate(arm: str, n: int) -> None:
 
 def judge(arm: str, judge_kind: str, batch: int = 3) -> None:
     """default judge -> faithfulness only; adapted judge -> faithfulness + factual correctness (FC does not use the adapted prompt)."""
-    names = ("faithfulness",) if (judge_kind == "default" or arm == "original") else ("faithfulness", "factual_correctness")
+    names = ("faithfulness",) if judge_kind == "default" else ("faithfulness", "factual_correctness")
     rows, path = er.read_jsonl(runs(arm)), scores(arm, judge_kind)
     done = {r["qid"] for r in er.read_jsonl(path)}
     todo = [r for r in rows if r["qid"] not in done]
@@ -100,7 +105,7 @@ def judge(arm: str, judge_kind: str, batch: int = 3) -> None:
     _, _, metrics = er.make_judge(adapted=(judge_kind == "adapted"))
     t0 = time.time()
     for s in range(0, len(todo), batch):
-        chunk = todo[s: s + batch]
+        chunk = [{**r, "answer": PIPELINE_NOTE.sub("", r["answer"]).strip()} for r in todo[s: s + batch]]
         out = er._score(chunk, metrics, names)
         with open(path, "a", encoding="utf-8") as f:
             for r, sc in zip(chunk, out):
@@ -127,7 +132,7 @@ def paired(a: dict, b: dict, metric: str, seed: int = 9) -> dict:
 def summary() -> None:
     result = {"n_questions": {}, "arms": {}, "paired_change_after_minus_before": {}}
     per: dict[str, dict[str, dict]] = {}
-    for arm in ("original", "before", "after"):
+    for arm in ("original", "before", "after", "hf"):
         rs = er.read_jsonl(runs(arm))
         if not rs:
             continue
@@ -151,6 +156,10 @@ def summary() -> None:
         for name, jk, metric in (("faithfulness_stock_judge", "default", "faithfulness"), ("faithfulness_adapted_judge", "adapted", "faithfulness"),
                                  ("factual_correctness_f1", "adapted", "factual_correctness")):
             result["paired_change_after_minus_before"][name] = paired(per["before"][jk], per["after"][jk], metric)
+    if "after" in per and "hf" in per:      # same prompt, different mode: what verification + regeneration adds
+        result["paired_change_hf_minus_after"] = {
+            name: paired(per["after"]["adapted"], per["hf"]["adapted"], metric)
+            for name, metric in (("faithfulness_adapted_judge", "faithfulness"), ("factual_correctness_f1", "factual_correctness"))}
     result["note"] = ("Same fresh questions in both arms; a paired bootstrap interval that includes 0 means the change is not distinguishable from "
                       "noise at this sample size. The adapted judge is only meaningful alongside judge_controls_adapted.json.")
     OUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
@@ -160,7 +169,7 @@ def summary() -> None:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("phase", choices=["generate", "judge", "summary"])
-    ap.add_argument("--arm", choices=["original", "before", "after"])
+    ap.add_argument("--arm", choices=["original", "before", "after", "hf"])
     ap.add_argument("--judge", choices=["default", "adapted"], default="default")
     ap.add_argument("--n", type=int, default=30)
     a = ap.parse_args()

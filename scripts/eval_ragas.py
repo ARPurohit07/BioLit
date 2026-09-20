@@ -28,6 +28,7 @@ import argparse
 import json
 import math
 import random
+import re
 import statistics
 import sys
 import time
@@ -44,6 +45,26 @@ API = "http://127.0.0.1:8000"
 JUDGE_MODEL = "qwen2.5:3b"
 EMBED_MODEL = "nomic-embed-text"
 METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall", "factual_correctness")
+
+
+_MARKERS = re.compile(r"\[\d+(?:\s*[,–-]\s*\d+)*\]")
+_LABELS = re.compile(r"(?:\*\*)?(?:SUPPORTED CLAIM|INTERPRETATION|LIMITATION)(?:\*\*)?\s*:?", re.IGNORECASE)
+_PIPELINE_NOTES = re.compile(r"\s*\*\(unsupported — could not be verified against retrieved evidence\)\*|\*\*Unverified statements:\*\*")
+
+
+def clean_answer(text: str) -> str:
+    """The answer as prose, for the judge: without citation markers, claim labels, markdown emphasis or pipeline notes.
+
+    The app's answers are cited on purpose ("... minimises Lbce [2]."). RAGAS turns a marker into a statement of its own
+    ("[2] refers to a source") and the judge marks it unsupported because the paper does not contain the text "[2]", so
+    every cited answer was being penalised for its own citations: a plainly supported sentence scored 0. Markers and labels
+    are formatting, not claims about the papers (the app's own verifier parses them out too), so they are removed before
+    judging. The stored answers are untouched, and a flagged-unverified claim stays in the text and is still scored."""
+    text = _PIPELINE_NOTES.sub("", text)
+    text = _LABELS.sub("", _MARKERS.sub("", text)).replace("**", "")
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"\s+([.,;:])", r"\1", text)
+    return text.strip()
 
 
 def runs_path(mode: str) -> Path:
@@ -142,11 +163,23 @@ def make_judge(adapted: bool = False):
     }
 
 
+def is_empty_answer(answer: str) -> bool:
+    """A reply with no words once markers and labels are removed (e.g. just "[4]") does not answer anything."""
+    return not re.search(r"[A-Za-z0-9]{2,}", clean_answer(answer))
+
+
 def _score(rows: list[dict], metrics: dict, names: tuple[str, ...]) -> list[dict]:
+    """Score rows with RAGAS. An empty answer has no statements, which RAGAS reports as "no score" and which would then be
+    silently left out of every average, flattering a system that answers with nothing. It is scored 0 instead."""
+    empty = [i for i, r in enumerate(rows) if is_empty_answer(r["answer"])]
+    if empty:
+        real = [r for i, r in enumerate(rows) if i not in empty]
+        scored = iter(_score(real, metrics, names) if real else [])
+        return [{n: 0.0 for n in names} if i in empty else next(scored) for i in range(len(rows))]
     from ragas import EvaluationDataset, evaluate
     from ragas.run_config import RunConfig
     ds = EvaluationDataset.from_list([
-        {"user_input": r["question"], "response": r["answer"], "retrieved_contexts": r["contexts"], "reference": r["reference_answer"]}
+        {"user_input": r["question"], "response": clean_answer(r["answer"]), "retrieved_contexts": r["contexts"], "reference": r["reference_answer"]}
         for r in rows
     ])
     res = evaluate(ds, metrics=[metrics[m] for m in names], show_progress=False, raise_exceptions=False,

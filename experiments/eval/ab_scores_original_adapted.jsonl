@@ -1,39 +1,36 @@
-{"qid": "q112", "type": "text", "faithfulness": 0.25}
-{"qid": "q126", "type": "text", "faithfulness": 0.5714285714285714}
-{"qid": "q003", "type": "text", "faithfulness": 0.0}
-{"qid": "q103", "type": "table", "faithfulness": 0.3333333333333333}
-{"qid": "q135", "type": "text", "faithfulness": 0.0}
-{"qid": "q048", "type": "text", "faithfulness": 0.25}
-{"qid": "q128", "type": "text", "faithfulness": 0.3333333333333333}
-{"qid": "q091", "type": "table", "faithfulness": 0.0}
-{"qid": "q043", "type": "table", "faithfulness": 0.0}
-{"qid": "q029", "type": "text", "faithfulness": 1.0}
-{"qid": "q142", "type": "figure", "faithfulness": 1.0}
-{"qid": "q124", "type": "table", "faithfulness": 0.0}
-{"qid": "q106", "type": "text", "faithfulness": 1.0}
-{"qid": "q081", "type": "text", "faithfulness": 0.25}
-{"qid": "q055", "type": "text", "faithfulness": 0.0}
-{"qid": "q032", "type": "table", "faithfulness": 0.5}
-{"qid": "q107", "type": "text", "faithfulness": 0.3333333333333333}
-{"qid": "q025", "type": "table", "faithfulness": 0.0}
-{"qid": "q070", "type": "text", "faithfulness": 1.0}
-{"qid": "q132", "type": "text", "faithfulness": 0.6666666666666666}
-{"qid": "q024", "type": "text", "faithfulness": 0.0}
-{"qid": "q056", "type": "text", "faithfulness": 0.4}
-{"qid": "q116", "type": "text", "faithfulness": null}
-{"qid": "q069", "type": "figure", "faithfulness": 0.0}
-{"qid": "q006", "type": "text", "faithfulness": 0.5}
-{"qid": "q080", "type": "text", "faithfulness": 0.5714285714285714}
-{"qid": "q037", "type": "text", "faithfulness": 0.25}
-{"qid": "q049", "type": "text", "faithfulness": 0.0}
-{"qid": "q143", "type": "figure", "faithfulness": 0.5}
-{"qid": "q054", "type": "text", "faithfulness": 0.75}
-{"qid": "q020", "type": "text", "faithfulness": 1.0}
-{"qid": "q018", "type": "table", "faithfulness": 0.5}
-{"qid": "q123", "type": "text", "faithfulness": 0.5}
-{"qid": "q111", "type": "text", "faithfulness": 0.6666666666666666}
-{"qid": "q129", "type": "text", "faithfulness": 1.0}
-{"qid": "q139", "type": "figure", "faithfulness": 0.0}
-{"qid": "q045", "type": "table", "faithfulness": 0.5}
-{"qid": "q061", "type": "text", "faithfulness": 1.0}
-{"qid": "q120", "type": "text", "faithfulness": 0.0}
+{"qid": "q112", "type": "text", "faithfulness": 0.6, "factual_correctness": 0.22}
+{"qid": "q126", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.18}
+{"qid": "q003", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.8}
+{"qid": "q103", "type": "table", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q135", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.86}
+{"qid": "q048", "type": "text", "faithfulness": 0.75, "factual_correctness": 0.4}
+{"qid": "q128", "type": "text", "faithfulness": 0.6666666666666666, "factual_correctness": 0.0}
+{"qid": "q091", "type": "table", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q043", "type": "table", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q029", "type": "text", "faithfulness": 0.5, "factual_correctness": 0.29}
+{"qid": "q142", "type": "figure", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q124", "type": "table", "faithfulness": 0.0, "factual_correctness": 0.0}
+{"qid": "q106", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.22}
+{"qid": "q081", "type": "text", "faithfulness": 0.4, "factual_correctness": 0.0}
+{"qid": "q055", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.25}
+{"qid": "q032", "type": "table", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q107", "type": "text", "faithfulness": 0.8333333333333334, "factual_correctness": 0.0}
+{"qid": "q025", "type": "table", "faithfulness": 0.0, "factual_correctness": 0.0}
+{"qid": "q070", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.29}
+{"qid": "q132", "type": "text", "faithfulness": 0.6666666666666666, "factual_correctness": 0.4}
+{"qid": "q024", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.33}
+{"qid": "q056", "type": "text", "faithfulness": 0.4, "factual_correctness": 0.0}
+{"qid": "q116", "type": "text", "faithfulness": null, "factual_correctness": 0.22}
+{"qid": "q069", "type": "figure", "faithfulness": 0.0, "factual_correctness": 0.0}
+{"qid": "q006", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.67}
+{"qid": "q080", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.22}
+{"qid": "q037", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.29}
+{"qid": "q049", "type": "text", "faithfulness": 0.0, "factual_correctness": 0.0}
+{"qid": "q143", "type": "figure", "faithfulness": 1.0, "factual_correctness": 1.0}
+{"qid": "q054", "type": "text", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q020", "type": "text", "faithfulness": null, "factual_correctness": 0.2}
+{"qid": "q018", "type": "table", "faithfulness": 1.0, "factual_correctness": 0.0}
+{"qid": "q123", "type": "text", "faithfulness": 0.5, "factual_correctness": 0.29}
+{"qid": "q111", "type": "text", "faithfulness": 0.6666666666666666, "factual_correctness": 0.0}
+{"qid": "q129", "type": "text", "faithfulness": 0.8, "factual_correctness": 0.5}
+{"qid": "q139", "type": "figure", "faithfulness": 0.0, "factual_correctness": 0.0}
