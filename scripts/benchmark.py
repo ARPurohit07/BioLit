@@ -83,7 +83,14 @@ def _build_pipeline():
         k1=bm25_cfg.get("k1", 1.5), b=bm25_cfg.get("b", 0.75),
     )
     bm25_index.load()
-    reranker = Reranker(model_name=rr_cfg.get("name", "BAAI/bge-reranker-base"))
+    reranker = Reranker(
+        model_name=rr_cfg.get("name", "BAAI/bge-reranker-base"),
+        device=rr_cfg.get("device", "auto"),
+        max_length=rr_cfg.get("max_length", 512),
+        batch_size=rr_cfg.get("batch_size", 16),
+        half_precision=rr_cfg.get("half_precision", True),
+        fallback_to_cpu=rr_cfg.get("fallback_to_cpu", True),
+    )
     retriever = HybridRetriever(vector_store, bm25_index, embedding_model, settings.retrieval_config)
 
     claim_extractor = ClaimExtractor()

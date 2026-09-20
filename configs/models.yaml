@@ -36,6 +36,8 @@ reranker:
   device: "auto"
   batch_size: 16
   max_length: 512
+  half_precision: true    # fp16 on the GPU: ~0.6 GB instead of ~1.1 GB (the 4 GB card is shared with the Ollama LLM)
+  fallback_to_cpu: true   # if the GPU cannot hold it, retry smaller, then score on the CPU instead of failing the request
 
 verifier:
   # Verification uses the same local Ollama model by default, with a dedicated low-temperature prompt.

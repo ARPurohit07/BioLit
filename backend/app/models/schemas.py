@@ -257,3 +257,4 @@ class HealthResponse(BaseModel):
     ollama_model: Optional[str] = None
     num_indexed_documents: int
     num_indexed_chunks: int
+    reranker_device: Optional[str] = None  # e.g. "cuda (fp16)", "cpu", or "cpu (fell back from GPU: ...)"

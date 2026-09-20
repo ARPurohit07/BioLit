@@ -105,6 +105,9 @@ def _init_state(app: FastAPI) -> None:
             model_name=rr_cfg.get("name", "BAAI/bge-reranker-base"),
             device=rr_cfg.get("device", "auto"),
             max_length=rr_cfg.get("max_length", 512),
+            batch_size=rr_cfg.get("batch_size", 16),
+            half_precision=rr_cfg.get("half_precision", True),
+            fallback_to_cpu=rr_cfg.get("fallback_to_cpu", True),
         )
     except Exception as exc:
         errors.append(f"Reranker init failed: {exc}")
@@ -204,8 +207,11 @@ def health(request: Request) -> HealthResponse:
 
     status = "ok" if ollama_available and getattr(request.app.state, "rag_pipeline", None) is not None else "degraded"
 
+    reranker = getattr(request.app.state, "reranker", None)
+
     return HealthResponse(
         status=status,
+        reranker_device=reranker.describe() if reranker is not None and hasattr(reranker, "describe") else None,
         ollama_available=ollama_available,
         ollama_model=settings.ollama_model,
         num_indexed_documents=num_docs,
