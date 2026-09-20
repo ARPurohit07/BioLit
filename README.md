@@ -8,7 +8,7 @@ BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with claim-level 
 
 ## Status and results at a glance
 
-**Works today (verified):** an end-to-end local pipeline over 6 arXiv papers (123 indexed chunks) — ingest, hybrid retrieval, rerank, cited answer, claim verification, React UI. `GET /api/health` reports `ok`, and the model-free test suite passes (84 tests; the API and retrieval tests additionally load models). The app serves `qwen2.5:3b` through Ollama.
+**Works today (verified):** an end-to-end local pipeline over 6 arXiv papers (123 indexed chunks) — ingest, hybrid retrieval, rerank, cited answer, claim verification, React UI. `GET /api/health` reports `ok`, and the test suite passes (127 tests, 4 skipped; 107 of them need no models and run in CI). A smoke test exercises every endpoint against the running backend and validates the responses. The app serves `qwen2.5:3b` through Ollama.
 
 **Measured** on 14 held-out prompts (6 validation + 8 test; details and caveats in [§11](#11-evaluation)):
 
@@ -82,7 +82,7 @@ flowchart LR
 
 The export/deployment branch of the second diagram is implemented (`training/export.py`, `scripts/setup_ollama.py`) but has **not been run** for the adapters trained so far; the app currently serves `qwen2.5:3b`.
 
-Fine-tuning and RAG are deliberately kept separate responsibilities (see [§21 Design principle](#21-design-principle)): fine-tuning changes *how* the model analyzes literature; RAG supplies *what* it knows about, at query time, from your actual corpus.
+Fine-tuning and RAG are deliberately kept separate responsibilities (see [§19 Design principle](#19-design-principle)): fine-tuning changes *how* the model analyzes literature; RAG supplies *what* it knows about, at query time, from your actual corpus.
 
 ## 4. Why fine-tuning?
 
@@ -110,6 +110,7 @@ BioLit/
 ├── experiments/          evaluation results (the citation-evaluation JSONs are committed; the rest is gitignored)
 ├── scripts/              CLI entry points (see §14)
 ├── configs/               models.yaml, retrieval.yaml, training.yaml — the only place to change models/params
+├── .github/workflows/     CI: model-free tests + frontend typecheck/build
 └── tests/                 cross-cutting + integration tests (per-package tests live under backend/tests)
 ```
 
@@ -136,10 +137,10 @@ The data is generated locally and not committed (it is derived from third-party 
 - **Dense**: `BAAI/bge-small-en-v1.5` embeddings in a FAISS flat inner-product (cosine) index.
 - **Lexical**: BM25 (`rank_bm25`) over the same chunks.
 - **Fusion**: Reciprocal Rank Fusion combines dense + BM25 rankings.
-- **Reranking**: `BAAI/bge-reranker-base` cross-encoder re-scores the fused top candidates down to the final evidence set.
+- **Reranking**: `BAAI/bge-reranker-base` cross-encoder re-scores the fused top candidates down to the final evidence set. It runs on the GPU in half precision when there is room and falls back to the CPU automatically if the card is full (the LLM shares the same 4 GB GPU); `GET /api/health` reports where it landed (`reranker_device`). Half precision picks the same top-5 evidence as full precision on 16 of 16 test queries.
 - **Three modes** (`configs/retrieval.yaml` → `modes`), selectable per query in the UI:
   - **Fast** — dense retrieval only, no reranker, no verification. Lowest latency.
-  - **Balanced** — hybrid (dense+BM25) retrieval + reranker, citations extracted but not LLM-verified.
+  - **Balanced** — hybrid (dense+BM25) retrieval + reranker, citations extracted but not LLM-verified (claims are shown as "Not verified").
   - **High-Faithfulness** — hybrid + reranker + lightweight query decomposition + full claim extraction, LLM-based verification, and regeneration of unsupported claims (or explicit "unsupported" annotation if regeneration still fails).
 
 ## 10. Citation verification
@@ -152,7 +153,7 @@ In High-Faithfulness mode an unsupported answer is regenerated, but a revision i
 
 The verifier itself was checked on controlled cases and got 12 of 12 right: verbatim sentences came back `SUPPORTED`, and both invented claims and mis-cited claims came back `UNSUPPORTED`. In practice its rejections trace back to the generator — citing the wrong block, or citing nothing.
 
-**Known gap:** Fast and Balanced modes do not verify, so their claims keep the default `UNSUPPORTED` status and the precision/faithfulness figures shown for them read 0%. That means "not verified", not "wrong"; a dedicated status is future work.
+**Unverified modes.** Fast and Balanced do not verify, so their claims carry a `NOT_VERIFIED` status (a gray "Not verified" badge in the UI) and precision, faithfulness and the unsupported-claim rate are reported as *not measured* (shown as "—") instead of a misleading 0%. Only citation coverage, which needs no verifier, is reported for them. In High-Faithfulness mode every claim gets a real status.
 
 Citation Precision, Citation Coverage and Faithfulness are computed in `backend/app/verification/citation_validator.py`.
 
@@ -287,6 +288,8 @@ Writes latency + citation-quality results per RAG mode to `data/results/` and `e
 | `python training/eval_ollama_citations.py` | Score an Ollama-served model on the same prompts (`--style_hint` for the prompt-only variant) |
 | `python scripts/summarize_citation_evals.py` | Merge the raw results into `citation_comparison.json` for the UI |
 | `python scripts/benchmark.py` | Fast/Balanced/High-Faithfulness latency + quality benchmark |
+| `python scripts/smoke_test_api.py` | Exercise and validate every endpoint of a running backend (see §16) |
+| `python -m pytest -q` | Run the test suite (see §16) |
 
 ## 15. API
 
@@ -303,28 +306,39 @@ FastAPI backend at `http://localhost:8000`. Key endpoints (full schemas in `back
 | `POST /api/literature-review` | Generate a clustered, cited literature review |
 | `POST /api/verify` | Verify a single claim against given evidence |
 | `GET /api/evaluation` | Citation-behavior comparison, plus retrieval/generation/latency metrics when measured, or "Not evaluated yet" |
-| `GET /api/health` | Ollama availability, index sizes, degraded-mode reporting |
+| `GET /api/health` | Ollama availability, index sizes, reranker placement, degraded-mode reporting |
 
-## 16. Screenshots
+## 16. Testing
 
-Not included yet. The corpus is local (the six papers are not bundled), so run the app per §13 and the Dashboard, Query and Evidence Viewer will show your own documents.
+```bash
+python -m pytest -q
+# 127 tests, 4 skipped. Some load real models, and the Ollama integration test only runs when Ollama is up.
+
+python -m pytest -q --ignore=backend/tests/test_api.py --ignore=backend/tests/test_retrieval.py --ignore=tests/test_integration.py
+# The 107 model-free tests: seconds, no GPU, no downloads. This is what CI runs.
+
+python scripts/smoke_test_api.py            # start the backend first; about 10 minutes for the full run
+python scripts/smoke_test_api.py --quick    # skip High-Faithfulness and literature review (about 3 minutes)
+```
+
+The smoke test checks more than status codes: evidence ids run 1..n, every claim cites real evidence, metrics are in range and consistent with the claims, unverified modes report no faithfulness figures, document filters are respected, error paths return 4xx rather than 500, and an upload → index → query → delete round trip leaves the index as it found it (it backs the index up first). `WARN` lines are answer-quality observations, not defects.
+
+**CI** (`.github/workflows/ci.yml`) runs the model-free tests with CPU-only PyTorch, plus the frontend typecheck and build, on every push and pull request. The workflow is written to run exactly the commands above, but it has not yet been executed on GitHub: this repository has no remote configured.
 
 ## 17. Limitations
 
 - **Small evidence base.** Six papers, and held-out evaluation on 14 prompts from two of them. Differences of a few examples are noise, and retrieval quality is unmeasured.
 - **Correctness is not measured.** The checks cover citation form and wording-level grounding, and they are biased toward the style the training data rewards. A human- or judge-scored sample is the missing piece.
 - **The model still fails sometimes.** In High-Faithfulness mode it occasionally cites the wrong block, and it still leaves some sentences uncited (about 59% of claims were cited on the 14 held-out questions in Balanced mode); the verifier then correctly rejects those claims. The one-shot retry handles the case of no citations at all, not partial coverage. Multi-paper comparisons are only about 55% cited.
-- **No "not verified" status.** Fast and Balanced modes show 0% faithfulness because they do not verify, which reads as a bad score rather than "not measured".
 - **The fine-tune is not deployed.** Adapters exist and are evaluated, but nothing has been exported to GGUF (it needs an external `llama.cpp` checkout), so the app serves `qwen2.5:3b`. The adapters were also trained with the earlier wording of the citation rules.
 - **Training data covers only question answering.** The teacher model failed the checks on comparison, synthesis and research-gap tasks.
 - **No OCR.** Scanned PDFs are detected and flagged (`scanned_needs_ocr`) rather than silently mis-parsed.
 - **Query decomposition** in High-Faithfulness mode is a lightweight heuristic, not an agentic planner.
-- **Hardware.** Developed on a 16 GB laptop with a 4 GB GPU. Memory pressure can kill long jobs, so close other apps when training or running High-Faithfulness queries.
+- **Hardware.** Developed on a 16 GB laptop with a 4 GB GPU shared with Ollama. The reranker falls back to the CPU when the GPU is full (about 4–5 s slower per query), and High-Faithfulness comparisons can take around 3 minutes. Memory pressure can still kill long jobs, so close other apps when training or running heavy queries.
 - **No data ships with the repo.** Papers, indexes, datasets and adapters are generated locally.
 
 ## 18. Future work
 
-- A dedicated "not verified" claim status, so unverified modes stop showing 0% faithfulness.
 - More papers, and a judged sample to measure correctness rather than citation form.
 - Training examples for comparison, synthesis and research-gap tasks (needs a stronger teacher or a different generation method).
 - Finish the second training run, export an adapter through `llama.cpp`, and benchmark it against the prompt-only 3B.
@@ -332,7 +346,7 @@ Not included yet. The corpus is local (the six papers are not bundled), so run t
 
 ---
 
-## 21. Design principle
+## 19. Design principle
 
 - **Fine-tuning** teaches the model *how* to analyze biomedical literature (structure, citation discipline, comparison/limitation/gap-finding skill).
 - **RAG** supplies *what* the model knows about, at query time, from the papers you've actually indexed.
