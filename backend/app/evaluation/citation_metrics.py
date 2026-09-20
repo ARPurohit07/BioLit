@@ -17,19 +17,28 @@ def average_citation_metrics(responses: list[QueryResponse]) -> CitationMetrics:
     return compute_citation_metrics(all_claims)
 
 
+def _mean_of_measured(values: list) -> float | None:
+    measured = [v for v in values if v is not None]
+    return sum(measured) / len(measured) if measured else None
+
+
 def average_metrics_list(metrics: list[CitationMetrics]) -> CitationMetrics:
-    """Average a list of already-computed CitationMetrics (simple mean, not claim-weighted)."""
+    """Average already-computed CitationMetrics (simple mean, not claim-weighted).
+
+    Precision / faithfulness / unsupported rate are averaged over the responses that measured them; if none did, the
+    result is None (not measured) rather than a misleading 0.
+    """
     if not metrics:
         return CitationMetrics(
             citation_precision=0.0, citation_coverage=0.0, faithfulness=0.0,
-            unsupported_claim_rate=0.0, total_claims=0, total_citations=0,
+            unsupported_claim_rate=0.0, verified_claims=0, total_claims=0, total_citations=0,
         )
-    n = len(metrics)
     return CitationMetrics(
-        citation_precision=sum(m.citation_precision for m in metrics) / n,
-        citation_coverage=sum(m.citation_coverage for m in metrics) / n,
-        faithfulness=sum(m.faithfulness for m in metrics) / n,
-        unsupported_claim_rate=sum(m.unsupported_claim_rate for m in metrics) / n,
+        citation_precision=_mean_of_measured([m.citation_precision for m in metrics]),
+        citation_coverage=sum(m.citation_coverage for m in metrics) / len(metrics),
+        faithfulness=_mean_of_measured([m.faithfulness for m in metrics]),
+        unsupported_claim_rate=_mean_of_measured([m.unsupported_claim_rate for m in metrics]),
+        verified_claims=sum(m.verified_claims for m in metrics),
         total_claims=sum(m.total_claims for m in metrics),
         total_citations=sum(m.total_citations for m in metrics),
     )

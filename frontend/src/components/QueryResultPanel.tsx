@@ -2,6 +2,7 @@ import type { QueryResponse } from "../types/api";
 import MarkdownRenderer from "./MarkdownRenderer";
 import LatencyTable from "./LatencyTable";
 import { useEvidenceViewer } from "./EvidenceViewerContext";
+import { formatPercent, NOT_VERIFIED_HINT } from "../utils/format";
 import "../styles/results.css";
 
 export default function QueryResultPanel({ result }: { result: QueryResponse }) {
@@ -23,22 +24,28 @@ export default function QueryResultPanel({ result }: { result: QueryResponse }) 
           )}
           {result.citation_metrics && (
             <>
-              <div className="stat-chip">
+              <div
+                className="stat-chip"
+                title={result.citation_metrics.citation_precision === null ? NOT_VERIFIED_HINT : undefined}
+              >
                 <span className="stat-label">Citation precision</span>
                 <span className="stat-value">
-                  {(result.citation_metrics.citation_precision * 100).toFixed(0)}%
+                  {formatPercent(result.citation_metrics.citation_precision)}
                 </span>
               </div>
               <div className="stat-chip">
                 <span className="stat-label">Citation coverage</span>
                 <span className="stat-value">
-                  {(result.citation_metrics.citation_coverage * 100).toFixed(0)}%
+                  {formatPercent(result.citation_metrics.citation_coverage)}
                 </span>
               </div>
-              <div className="stat-chip">
+              <div
+                className="stat-chip"
+                title={result.citation_metrics.faithfulness === null ? NOT_VERIFIED_HINT : undefined}
+              >
                 <span className="stat-label">Faithfulness</span>
                 <span className="stat-value">
-                  {(result.citation_metrics.faithfulness * 100).toFixed(0)}%
+                  {formatPercent(result.citation_metrics.faithfulness)}
                 </span>
               </div>
             </>

@@ -112,4 +112,8 @@ def test_full_pipeline(tmp_path: Path):
 
     claims = ClaimExtractor().extract(answer, evidence=[])
     metrics = compute_citation_metrics(claims)
-    assert 0.0 <= metrics.faithfulness <= 1.0
+    # These claims were extracted but never verified, so coverage is measurable but faithfulness is not:
+    # it must read as "not measured" (None), not as a misleading 0.
+    assert 0.0 <= metrics.citation_coverage <= 1.0
+    assert metrics.verified_claims == 0
+    assert metrics.faithfulness is None

@@ -24,6 +24,7 @@ class RAGMode(str, Enum):
 
 
 class ClaimStatus(str, Enum):
+    NOT_VERIFIED = "NOT_VERIFIED"  # extracted from the answer but never checked (Fast and Balanced modes do not verify)
     SUPPORTED = "SUPPORTED"
     PARTIALLY_SUPPORTED = "PARTIALLY_SUPPORTED"
     UNSUPPORTED = "UNSUPPORTED"
@@ -115,15 +116,17 @@ class Claim(BaseModel):
     claim_id: str
     text: str
     citation_ids: list[int] = Field(default_factory=list)
-    status: ClaimStatus = ClaimStatus.UNSUPPORTED
+    status: ClaimStatus = ClaimStatus.NOT_VERIFIED  # the verifier sets a real status; unverified modes leave this
     verifier_rationale: Optional[str] = None
 
 
 class CitationMetrics(BaseModel):
-    citation_precision: float
+    """citation_coverage needs no verifier; the other three are None when no claim was verified ("not measured")."""
+    citation_precision: Optional[float] = None
     citation_coverage: float
-    faithfulness: float
-    unsupported_claim_rate: float
+    faithfulness: Optional[float] = None
+    unsupported_claim_rate: Optional[float] = None
+    verified_claims: int = 0
     total_claims: int
     total_citations: int
 
@@ -200,10 +203,10 @@ class RetrievalMetrics(BaseModel):
 
 
 class GenerationMetrics(BaseModel):
-    citation_precision: float
+    citation_precision: Optional[float] = None
     citation_coverage: float
-    faithfulness: float
-    unsupported_claim_rate: float
+    faithfulness: Optional[float] = None
+    unsupported_claim_rate: Optional[float] = None
     answer_relevance_approx: Optional[float] = None
     note: str = "Semantic relevance metrics are approximate; not a substitute for human review."
 

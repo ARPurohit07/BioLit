@@ -4,6 +4,7 @@ import type { EvaluationSummary } from "../types/api";
 import LoadingSpinner from "../components/LoadingSpinner";
 import ErrorBanner from "../components/ErrorBanner";
 import BarChart from "../components/BarChart";
+import { formatPercent } from "../utils/format";
 import "./Evaluation.css";
 
 const MODE_LABEL: Record<string, string> = {
@@ -155,25 +156,25 @@ export default function Evaluation() {
                 <div className="stat-chip">
                   <span className="stat-label">Citation precision</span>
                   <span className="stat-value">
-                    {(summary.generation_metrics.citation_precision * 100).toFixed(1)}%
+                    {formatPercent(summary.generation_metrics.citation_precision, 1)}
                   </span>
                 </div>
                 <div className="stat-chip">
                   <span className="stat-label">Citation coverage</span>
                   <span className="stat-value">
-                    {(summary.generation_metrics.citation_coverage * 100).toFixed(1)}%
+                    {formatPercent(summary.generation_metrics.citation_coverage, 1)}
                   </span>
                 </div>
                 <div className="stat-chip">
                   <span className="stat-label">Faithfulness</span>
                   <span className="stat-value">
-                    {(summary.generation_metrics.faithfulness * 100).toFixed(1)}%
+                    {formatPercent(summary.generation_metrics.faithfulness, 1)}
                   </span>
                 </div>
                 <div className="stat-chip">
                   <span className="stat-label">Unsupported claim rate</span>
                   <span className="stat-value">
-                    {(summary.generation_metrics.unsupported_claim_rate * 100).toFixed(1)}%
+                    {formatPercent(summary.generation_metrics.unsupported_claim_rate, 1)}
                   </span>
                 </div>
                 {summary.generation_metrics.answer_relevance_approx !== undefined && (

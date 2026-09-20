@@ -20,6 +20,7 @@ const DOCUMENT_STATUS_CLASS: Record<DocumentStatus, string> = {
 };
 
 const CLAIM_STATUS_LABEL: Record<ClaimStatus, string> = {
+  NOT_VERIFIED: "Not verified",
   SUPPORTED: "Supported",
   PARTIALLY_SUPPORTED: "Partially supported",
   UNSUPPORTED: "Unsupported",
@@ -27,6 +28,7 @@ const CLAIM_STATUS_LABEL: Record<ClaimStatus, string> = {
 };
 
 const CLAIM_STATUS_CLASS: Record<ClaimStatus, string> = {
+  NOT_VERIFIED: "badge-gray",
   SUPPORTED: "badge-green",
   PARTIALLY_SUPPORTED: "badge-yellow",
   UNSUPPORTED: "badge-orange",
@@ -46,8 +48,12 @@ export function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
 }
 
 export function ClaimStatusBadge({ status }: { status: ClaimStatus }) {
+  const title =
+    status === "NOT_VERIFIED"
+      ? "This claim was not checked against the evidence. Fast and Balanced modes do not verify; use High-Faithfulness mode."
+      : undefined;
   return (
-    <span className={`badge ${CLAIM_STATUS_CLASS[status]}`}>
+    <span className={`badge ${CLAIM_STATUS_CLASS[status]}`} title={title}>
       {CLAIM_STATUS_LABEL[status]}
     </span>
   );

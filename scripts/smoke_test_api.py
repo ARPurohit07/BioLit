@@ -22,7 +22,7 @@ from pathlib import Path
 import requests
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-STATUSES = {"SUPPORTED", "PARTIALLY_SUPPORTED", "UNSUPPORTED", "CONTRADICTED"}
+STATUSES = {"NOT_VERIFIED", "SUPPORTED", "PARTIALLY_SUPPORTED", "UNSUPPORTED", "CONTRADICTED"}
 DOC_STATUSES = {"uploaded", "parsing", "indexing", "indexed", "failed", "scanned_needs_ocr"}
 EXPECTED_PATHS = ["/api/health", "/api/documents/upload", "/api/documents/", "/api/documents/{document_id}",
                   "/api/documents/index", "/api/query", "/api/compare", "/api/literature-review", "/api/verify",
@@ -112,9 +112,18 @@ def validate_query_response(d: dict, mode: str | None = None, doc_ids: list[str]
         if not c["text"].strip():
             p.append(f"claim {c['claim_id']} is empty")
     m = d.get("citation_metrics", {})
-    for k in ("citation_precision", "citation_coverage", "faithfulness", "unsupported_claim_rate"):
-        if not 0.0 <= m.get(k, -1) <= 1.0:
-            p.append(f"metric {k}={m.get(k)} outside [0,1]")
+    n_verified = sum(c["status"] != "NOT_VERIFIED" for c in claims)
+    if m.get("verified_claims") != n_verified:
+        p.append(f"verified_claims {m.get('verified_claims')} != {n_verified} claims with a real status")
+    if not 0.0 <= m.get("citation_coverage", -1) <= 1.0:
+        p.append(f"citation_coverage={m.get('citation_coverage')} outside [0,1]")
+    for k in ("citation_precision", "faithfulness", "unsupported_claim_rate"):
+        v = m.get(k, "missing")
+        if n_verified == 0 and claims:
+            if v is not None:
+                p.append(f"{k}={v} reported although no claim was verified (should be null = not measured)")
+        elif not (isinstance(v, (int, float)) and 0.0 <= v <= 1.0):
+            p.append(f"metric {k}={v} is not a number in [0,1]")
     if m.get("total_claims") != len(claims):
         p.append(f"total_claims {m.get('total_claims')} != {len(claims)} claims")
     if m.get("total_citations") != sum(len(c["citation_ids"]) for c in claims):
@@ -133,6 +142,10 @@ def validate_query_response(d: dict, mode: str | None = None, doc_ids: list[str]
             p.append(f"mode echoed as {d.get('mode')}, sent {mode}")
         if mode == "high_faithfulness" and claims and lat.get("verification_latency_ms", 0) <= 0:
             p.append("high_faithfulness reported no verification time")
+        if mode == "high_faithfulness" and n_verified != len(claims):
+            p.append(f"high_faithfulness left {len(claims) - n_verified} claims NOT_VERIFIED")
+        if mode in ("fast", "balanced") and n_verified != 0:
+            p.append(f"{mode} mode produced {n_verified} verified claims (it should not verify)")
         if mode != "high_faithfulness" and lat.get("verification_latency_ms", 0) != 0:
             p.append(f"{mode} mode reported verification time (it should not verify)")
     return p

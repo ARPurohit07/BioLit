@@ -3,6 +3,7 @@
 export type RAGMode = "fast" | "balanced" | "high_faithfulness";
 
 export type ClaimStatus =
+  | "NOT_VERIFIED"
   | "SUPPORTED"
   | "PARTIALLY_SUPPORTED"
   | "UNSUPPORTED"
@@ -105,10 +106,12 @@ export interface Claim {
 }
 
 export interface CitationMetrics {
-  citation_precision: number;
+  /** null = not measured (no claim was verified: Fast and Balanced modes). */
+  citation_precision: number | null;
   citation_coverage: number;
-  faithfulness: number;
-  unsupported_claim_rate: number;
+  faithfulness: number | null;
+  unsupported_claim_rate: number | null;
+  verified_claims: number;
   total_claims: number;
   total_citations: number;
 }
@@ -185,10 +188,10 @@ export interface RetrievalMetrics {
 }
 
 export interface GenerationMetrics {
-  citation_precision: number;
+  citation_precision: number | null;
   citation_coverage: number;
-  faithfulness: number;
-  unsupported_claim_rate: number;
+  faithfulness: number | null;
+  unsupported_claim_rate: number | null;
   answer_relevance_approx?: number;
   note: string;
 }
@@ -242,4 +245,6 @@ export interface HealthResponse {
   ollama_model?: string;
   num_indexed_documents: number;
   num_indexed_chunks: number;
+  /** Where the reranker runs, e.g. "cuda (fp16)" or "cpu (fell back from GPU: ...)". */
+  reranker_device?: string;
 }
