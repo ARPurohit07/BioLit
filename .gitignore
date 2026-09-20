@@ -58,3 +58,4 @@ Thumbs.db
 !experiments/eval/
 !experiments/eval/*
 experiments/eval/runs_*.jsonl
+experiments/eval/ab_runs_*.jsonl

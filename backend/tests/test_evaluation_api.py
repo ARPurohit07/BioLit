@@ -75,3 +75,15 @@ def test_unreadable_rag_eval_files_are_ignored(monkeypatch, tmp_path):
     d.mkdir(parents=True)
     (d / "ragas_summary.json").write_text("{not json", encoding="utf-8")
     assert evaluation.get_evaluation_summary().evaluated is False
+
+
+def test_json_files_that_are_not_result_objects_do_not_break_the_endpoint(monkeypatch, tmp_path):
+    _use_repo(monkeypatch, tmp_path)
+    d = tmp_path / "experiments" / "eval"
+    d.mkdir(parents=True)
+    (d / "ab_sample.json").write_text('["q1", "q2"]', encoding="utf-8")        # a list, not an object
+    (d / "retrieval_eval.json").write_text(json.dumps({"eval_set": {"n": 1}, "arms": {}}), encoding="utf-8")
+
+    summary = evaluation.get_evaluation_summary()
+
+    assert summary.evaluated is True and summary.rag_eval["retrieval"]["eval_set"]["n"] == 1

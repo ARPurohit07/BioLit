@@ -19,7 +19,7 @@ BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with structure-aw
 | Hybrid (rank fusion) | 0.76 | 0.59 |
 | **Hybrid + reranker (Balanced mode)** | **0.83** | **0.65** |
 
-The reranker is best overall and on tables (0.87), figures (0.81) and hard questions, but its overall edge over BM25 is within the confidence intervals. Answer quality was scored with RAGAS and a local 3B judge, and each metric was checked against deliberately wrong inputs: context precision (0.71) and factual correctness (0.21) passed, faithfulness (0.28) passed but scores harshly, and answer relevancy and context recall did not, so they are marked unreliable rather than trusted.
+The reranker is best overall and on tables (0.87), figures (0.81) and hard questions, but its overall edge over BM25 is within the confidence intervals. Answer quality was scored with RAGAS and a local 3B judge, and each metric was checked against deliberately wrong inputs: context precision (0.71) and factual correctness (0.21) passed, faithfulness passed but scored harshly (0.28 with the stock judge, 0.39 on the same answers with a calibrated judge, [§9.2](#92-a-less-harsh-judge-and-a-prompt-change-that-did-not-move-the-scores)), and answer relevancy and context recall did not, so they are marked unreliable rather than trusted.
 
 **Fine-tuning** was also tried and is kept as an evaluated experiment, not a part of the served app: QLoRA taught a 1.5B model to cite (0 → 14 of 14 held-out prompts), but a better prompt on the served `qwen2.5:3b` did about as well with no training, so nothing fine-tuned is deployed ([§18](#18-experiment-qlora-fine-tuning-evaluated-not-deployed)).
 
@@ -214,6 +214,35 @@ python scripts/eval_ragas.py judge --mode balanced                # about 40 min
 python scripts/eval_ragas.py controls --n 20 && python scripts/eval_ragas.py summary
 ```
 The Evaluation page in the UI shows all of this from `experiments/eval/`.
+
+### 9.2 A less harsh judge, and a prompt change that did not move the scores
+
+The faithfulness (0.28) and factual correctness (0.21) figures above looked low. I checked whether that was the answers or the measurement, and tried to fix both. Two changes, each tested.
+
+**A calibrated faithfulness judge.** The stock RAGAS prompt asks whether a statement "can be directly inferred" from the context, and a 3B judge reads that very strictly: an answer copied from its own source scored only 0.45. I changed that one instruction to accept faithful paraphrases while still requiring numbers, names and results to match and ignoring citation markers and label words (`ADAPTED_NLI` in `scripts/eval_ragas.py`). The acceptance rule was written down before running it: the true-context score must rise, an unrelated context must still score at most 0.1, and the gap must stay at least 0.4. It passed (`experiments/eval/judge_controls_adapted.json`, n = 20 pairs):
+
+| Judge | True context | Unrelated context | Gap | Right case scored higher |
+|---|---|---|---|---|
+| Stock | 0.45 | 0.00 | 0.45 | 58% |
+| Adapted | 0.80 | 0.00 | 0.80 | 95% |
+
+On the same 39 original answers, faithfulness moves from **0.28 to 0.39** (35 answers scored by both). The judge is more tolerant of paraphrase, not of wrong content, since unrelated contexts still score 0. Any faithfulness figure should be quoted together with which judge produced it.
+
+**A plainer question-answering prompt.** Answers that carried the model's `SUPPORTED CLAIM` / `INTERPRETATION` labels had scored about half as faithful as the rest (0.16 vs 0.33), so `QA_RULES` in `backend/app/generation/prompts.py` drops the labels, asks the model to stay close to the evidence's wording, and to answer directly and stop. Synthesis tasks (summaries, comparisons, research gaps) keep the labelled rules. Because the change was motivated by the 39 judged answers, it was tested on **29 different questions**, with both prompts answering the same ones and a paired comparison (`scripts/eval_prompt_ab.py`, `experiments/eval/prompt_ab.json`):
+
+| Balanced mode, 29 fresh questions | Old prompt | New prompt | Paired change (95% interval) |
+|---|---|---|---|
+| Faithfulness (adapted judge) | 0.45 | 0.49 | +0.04 (−0.08 to +0.16) |
+| Factual correctness (F1) | 0.25 | 0.23 | 0.00 (−0.15 to +0.12) |
+| Median answer length | 58 words | 21 words | references are 23 |
+| Answers carrying labels | 5 of 29 | 0 | |
+| Citation coverage | 0.61 | 0.82 | |
+| Claims flagged "check source" | 52% | 48% | |
+| Source chunk in the context | 79% | 79% | same retrieval |
+
+**What this shows.** The prompt change did **not** measurably improve faithfulness or factual correctness: both intervals include zero. It did make answers as short as the references, remove the labels, and raise the share of claims that cite a source from 61% to 82%, so it was kept for those reasons. Faithfulness of about 0.45–0.49 under the calibrated judge is the honest current figure; factual correctness stays at about 0.2–0.25 (an F1 against one-sentence, model-written references), and I would not present it as a strength.
+
+**Caveats.** The adapted judge was validated on 20 pairs and is still a 3B model. The new answers make fewer claims (1.4 vs 2.6 on average), so completeness could be lower, which the F1 does not rule out and recall was not measured separately. The two arms were also not re-scored with the stock judge for lack of time; the stock-versus-adapted comparison above uses the original 39 answers only.
 ## 10. Installation
 
 Requirements: Python 3.11+ (a compatible 3.12 works — used in development), Node.js 18+, [Ollama](https://ollama.com/download) installed and running, and for fine-tuning, an NVIDIA GPU with CUDA (4GB+ VRAM is enough for the default 1.5B QLoRA config; see `scripts/check_hardware.py`).
@@ -293,6 +322,7 @@ Writes latency + citation-quality results per RAG mode to `data/results/` and `e
 | `python scripts/build_eval_set.py` | Generate the labelled question set (text, table, figure questions) with a local model |
 | `python scripts/eval_retrieval.py` | Recall@k / MRR / nDCG for dense, BM25, hybrid and hybrid + reranker, with confidence intervals |
 | `python scripts/eval_ragas.py {generate,judge,controls,summary}` | RAGAS answer-quality metrics with a local judge, plus the judge-validity controls (runs in `.venv-eval`) |
+| `python scripts/eval_prompt_ab.py {generate,judge,summary}` | Paired before/after test of a prompt change on fresh questions (runs in `.venv-eval`) |
 | `python scripts/calibrate_grounding.py {collect,analyze}` | Collect claims + LLM verdicts from a running backend, then measure how well the fast grounding flag agrees with them |
 | `python scripts/smoke_test_api.py` | Exercise and validate every endpoint of a running backend (see §14) |
 | `python -m pytest -q` | Run the test suite (see §14) |

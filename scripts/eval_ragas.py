@@ -107,7 +107,20 @@ def generate(mode: str, n: int) -> None:
 
 
 # ---------------------------------------------------------------------------------------------------- judge
-def make_judge():
+# The stock RAGAS instruction asks whether a statement "can be directly inferred" from the context, which a 3B judge reads
+# very strictly (an answer copied from its source only scores ~0.45). The adapted instruction accepts faithful paraphrases
+# but still requires numbers and names to match. It is only trusted because it passed the right-vs-wrong controls
+# (judge_controls_adapted.json): the true context must score higher AND an unrelated context must still score near zero.
+ADAPTED_NLI = (
+    "Your task is to judge the faithfulness of a series of statements based on a given context. For each statement "
+    "return verdict 1 if the context states it, or states it in different words (a paraphrase or a summary of what "
+    "the context says). Return verdict 0 if the context does not mention it or contradicts it. Numbers, names and "
+    "results in the statement must match the context. Ignore citation markers such as [1] and label words such as "
+    "'SUPPORTED CLAIM'."
+)
+
+
+def make_judge(adapted: bool = False):
     from langchain_ollama import ChatOllama, OllamaEmbeddings
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
@@ -115,8 +128,13 @@ def make_judge():
                                LLMContextRecall, ResponseRelevancy)
     llm = LangchainLLMWrapper(ChatOllama(model=JUDGE_MODEL, temperature=0, num_ctx=6144, num_predict=700, keep_alive="30m"))
     emb = LangchainEmbeddingsWrapper(OllamaEmbeddings(model=EMBED_MODEL))
+    faithfulness = Faithfulness(llm=llm)
+    if adapted:
+        nli = faithfulness.get_prompts()["n_l_i_statement_prompt"]
+        nli.instruction = ADAPTED_NLI
+        faithfulness.set_prompts(n_l_i_statement_prompt=nli)
     return llm, emb, {
-        "faithfulness": Faithfulness(llm=llm),
+        "faithfulness": faithfulness,
         "answer_relevancy": ResponseRelevancy(llm=llm, embeddings=emb),
         "context_precision": LLMContextPrecisionWithReference(llm=llm),
         "context_recall": LLMContextRecall(llm=llm),
@@ -193,7 +211,7 @@ def _control_rows(kind: str, items: list[dict], chunks: dict, rng: random.Random
     return {"positive": pos, "negative": neg}
 
 
-def controls(n: int, only: list[str] | None = None) -> None:
+def controls(n: int, only: list[str] | None = None, adapted: bool = False) -> None:
     """Judge validity. For each metric, score a case where everything is right and a case where one input is wrong;
     a metric the judge cannot tell apart is not measuring what its name says. Results merge into judge_controls.json."""
     chunks = {}
@@ -204,9 +222,9 @@ def controls(n: int, only: list[str] | None = None) -> None:
     items = [i for i in read_jsonl(EVAL_SET) if i["type"] == "text"]
     random.Random(5).shuffle(items)
     items = items[:n]
-    path = EVAL_DIR / "judge_controls.json"
+    path = EVAL_DIR / ("judge_controls_adapted.json" if adapted else "judge_controls.json")
     saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"summary": {}, "raw": {}}
-    _, _, metrics = make_judge()
+    _, _, metrics = make_judge(adapted)
     for name in (only or list(CONTROL_KIND)):
         rows = _control_rows(CONTROL_KIND[name], items, chunks, random.Random(5))
         raw = {}
@@ -286,6 +304,7 @@ if __name__ == "__main__":
     ap.add_argument("--mode", default="balanced", choices=["fast", "balanced", "high_faithfulness"])
     ap.add_argument("--n", type=int, default=50)
     ap.add_argument("--metrics", nargs="*", help="controls: only these metrics (default: all five)")
+    ap.add_argument("--judge", choices=["default", "adapted"], default="default", help="controls: use the adapted faithfulness prompt")
     a = ap.parse_args()
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
     if a.phase == "generate":
@@ -293,6 +312,6 @@ if __name__ == "__main__":
     elif a.phase == "judge":
         judge(a.mode)
     elif a.phase == "controls":
-        controls(a.n if a.n != 50 else 20, a.metrics)
+        controls(a.n if a.n != 50 else 20, a.metrics, a.judge == "adapted")
     else:
         summary()

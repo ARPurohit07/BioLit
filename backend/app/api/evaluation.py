@@ -34,9 +34,11 @@ def _load_result_files() -> list[dict]:
     for path in experiments_dir.rglob("*.json"):
         try:
             with open(path, "r", encoding="utf-8") as f:
-                results.append(json.load(f))
+                data = json.load(f)
         except (json.JSONDecodeError, OSError):
             continue
+        if isinstance(data, dict):      # e.g. eval/ab_sample.json is a bare list of question ids, not a result file
+            results.append(data)
     return results
 
 

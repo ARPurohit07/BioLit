@@ -1,0 +1,64 @@
+{
+  "summary": {
+    "faithfulness": {
+      "negative_control": "context",
+      "positive_mean": 0.804,
+      "negative_mean": 0.0,
+      "gap": 0.804,
+      "separates": true,
+      "n": 20,
+      "n_positive_scored": 20,
+      "n_negative_scored": 20,
+      "pairs_ranked_correctly": 0.95
+    }
+  },
+  "raw": {
+    "faithfulness": {
+      "positive": [
+        1.0,
+        1.0,
+        0.0,
+        0.6666666666666666,
+        1.0,
+        1.0,
+        1.0,
+        0.5,
+        0.5,
+        1.0,
+        1.0,
+        0.5,
+        1.0,
+        0.25,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.6666666666666666
+      ],
+      "negative": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "judge": "qwen2.5:3b"
+}

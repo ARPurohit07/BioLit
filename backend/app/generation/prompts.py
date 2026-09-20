@@ -34,6 +34,31 @@ CITATION_RULES = (
 )
 
 
+# Question answering (also limitations and structured-table queries) uses plainer rules. The SUPPORTED CLAIM / INTERPRETATION
+# labels above are useful for synthesis tasks, but on a factual question they were pure scaffolding: in an evaluation, answers
+# that carried them scored about half as faithful as the rest, because the labels invite unsupported "interpretation"
+# sentences and clutter the claims. A question asks for what the evidence says, so say only that, in its own wording.
+QA_RULES = (
+    "Citation rules:\n"
+    "- Cite only using the numbered evidence blocks below, with inline [n] markers "
+    "(e.g. [1], or [1][3] for multiple sources).\n"
+    "- Put the marker(s) inside the sentence, immediately before its final period "
+    "(e.g. 'Method A improves recall over baseline B [2].'). Every factual sentence must "
+    "carry at least one marker.\n"
+    "- Never invent a citation number that isn't in the evidence list.\n"
+    "- Say only what the evidence states. Stay close to its wording: keep numbers, names and "
+    "terms exactly as written, and do not add background, explanation or inference of your own.\n"
+    "- Write plain sentences. Do not label them (no 'SUPPORTED CLAIM', 'INTERPRETATION' or "
+    "'LIMITATION'). If the evidence itself raises a caveat, state it as an ordinary sentence.\n"
+    "- Answer the question directly with the specific detail (a number, name, method, dataset "
+    "or reason), then stop. Do not repeat the question's wording back, do not open with an "
+    "introduction or close with a summary, and do not comment on the evidence (no 'this is "
+    "directly stated', 'this is supported by', 'classified as').\n"
+    "- If the evidence is insufficient to answer part or all of the question, say so "
+    "plainly (\"insufficient evidence to determine X\") instead of guessing.\n"
+)
+
+
 def format_evidence(evidence: list[EvidenceItem]) -> str:
     blocks = []
     for item in evidence:
@@ -122,7 +147,7 @@ def build_conflict_detection_prompt(evidence: list[EvidenceItem]) -> tuple[str, 
 def build_qa_prompt(question: str, evidence: list[EvidenceItem]) -> tuple[str, str]:
     system = (
         "You are a biomedical question-answering assistant. Answer strictly using the "
-        "provided evidence.\n" + CITATION_RULES
+        "provided evidence.\n" + QA_RULES
     )
     user = (
         f"QUESTION: {question}\n\n"

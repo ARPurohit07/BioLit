@@ -1,0 +1,70 @@
+{
+  "n_questions": {
+    "original": 39,
+    "before": 29,
+    "after": 29
+  },
+  "arms": {
+    "original": {
+      "faithfulness_stock_judge": null,
+      "faithfulness_adapted_judge": 0.411,
+      "factual_correctness_f1": null,
+      "answer_words_median": 66,
+      "reference_words_median": 24,
+      "share_with_labels": 0.256,
+      "citation_coverage": 0.679,
+      "check_source_share": 0.453,
+      "source_chunk_in_context": 0.846
+    },
+    "before": {
+      "faithfulness_stock_judge": null,
+      "faithfulness_adapted_judge": 0.45,
+      "factual_correctness_f1": 0.246,
+      "answer_words_median": 58,
+      "reference_words_median": 23,
+      "share_with_labels": 0.172,
+      "citation_coverage": 0.613,
+      "check_source_share": 0.522,
+      "source_chunk_in_context": 0.793
+    },
+    "after": {
+      "faithfulness_stock_judge": null,
+      "faithfulness_adapted_judge": 0.489,
+      "factual_correctness_f1": 0.227,
+      "answer_words_median": 21,
+      "reference_words_median": 23,
+      "share_with_labels": 0.0,
+      "citation_coverage": 0.821,
+      "check_source_share": 0.482,
+      "source_chunk_in_context": 0.793
+    }
+  },
+  "paired_change_after_minus_before": {
+    "faithfulness_stock_judge": {
+      "n_pairs": 0
+    },
+    "faithfulness_adapted_judge": {
+      "n_pairs": 27,
+      "mean_diff": 0.041,
+      "ci95": [
+        -0.081,
+        0.158
+      ],
+      "improved": 10,
+      "worse": 6,
+      "same": 11
+    },
+    "factual_correctness_f1": {
+      "n_pairs": 27,
+      "mean_diff": -0.003,
+      "ci95": [
+        -0.145,
+        0.124
+      ],
+      "improved": 9,
+      "worse": 6,
+      "same": 12
+    }
+  },
+  "note": "Same fresh questions in both arms; a paired bootstrap interval that includes 0 means the change is not distinguishable from noise at this sample size. The adapted judge is only meaningful alongside judge_controls_adapted.json."
+}

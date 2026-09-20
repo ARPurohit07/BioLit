@@ -220,3 +220,41 @@ def test_each_control_breaks_exactly_one_input(rg):
 def test_a_metric_separates_only_when_right_and_wrong_cases_are_far_apart(rg):
     assert rg.MIN_GAP == 0.4
     assert set(rg.CONTROL_KIND) == set(rg.METRICS)            # every reported metric has a validity control
+
+
+# ------------------------------------------------------------------ prompt A/B
+@pytest.fixture()
+def ab(tmp_path, monkeypatch):
+    mod = _load("eval_prompt_ab")
+    monkeypatch.setattr(mod.er, "EVAL_DIR", tmp_path)
+    monkeypatch.setattr(mod.er, "EVAL_SET", tmp_path / "eval_set.jsonl")
+    monkeypatch.setattr(mod, "SAMPLE", tmp_path / "ab_sample.json")
+    return mod
+
+
+def test_the_fresh_sample_excludes_questions_already_judged_and_is_frozen(ab):
+    rows = [{"qid": f"q{i}", "type": "text", "question": "q?", "reference_answer": "a", "chunk_id": f"c{i}", "document_id": "d",
+             "question_chunk_overlap": 0.3} for i in range(20)]
+    ab.er.EVAL_SET.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
+    judged = [{"qid": f"q{i}"} for i in range(8)]
+    (ab.er.EVAL_DIR / "runs_balanced.jsonl").write_text("\n".join(json.dumps(r) for r in judged) + "\n", encoding="utf-8")
+
+    first = ab.fresh_sample(6)
+    assert len(first) == 6 and not ({q["qid"] for q in first} & {f"q{i}" for i in range(8)})
+    assert {q["qid"] for q in ab.fresh_sample(6)} == {q["qid"] for q in first}      # frozen: both arms see the same questions
+
+
+def test_paired_difference_uses_only_questions_scored_in_both_arms(ab):
+    before = {"a": {"m": 0.2}, "b": {"m": 0.4}, "c": {"m": None}, "d": {"m": 0.5}}
+    after = {"a": {"m": 0.6}, "b": {"m": 0.4}, "c": {"m": 0.9}, "e": {"m": 1.0}}
+    r = ab.paired(before, after, "m")
+    assert r["n_pairs"] == 2                        # c (missing before) and d/e (missing in one arm) are not paired
+    assert r["mean_diff"] == pytest.approx(0.2)
+    assert (r["improved"], r["worse"], r["same"]) == (1, 0, 1)
+    assert r["ci95"][0] <= 0.2 <= r["ci95"][1]
+    assert ab.paired({}, {}, "m") == {"n_pairs": 0}
+
+
+def test_the_adapted_judge_instruction_keeps_numbers_and_names_strict(rg):
+    text = rg.ADAPTED_NLI
+    assert "paraphrase" in text and "must match the context" in text and "contradicts" in text
