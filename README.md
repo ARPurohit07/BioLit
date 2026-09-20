@@ -19,7 +19,7 @@ BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with structure-aw
 | Hybrid (rank fusion) | 0.76 | 0.59 |
 | **Hybrid + reranker (Balanced mode)** | **0.83** | **0.65** |
 
-The reranker is best overall and on tables (0.87), figures (0.81) and hard questions, but its overall edge over BM25 is within the confidence intervals. Answer quality was scored with RAGAS and a local 3B judge, and each metric was checked against deliberately wrong inputs: context precision (0.71) and factual correctness (0.21) passed, faithfulness passed but scored harshly (0.28 with the stock judge, 0.39 on the same answers with a calibrated judge, [§9.2](#92-a-less-harsh-judge-and-a-prompt-change-that-did-not-move-the-scores)), and answer relevancy and context recall did not, so they are marked unreliable rather than trusted.
+The reranker is best overall and on tables (0.87), figures (0.81) and hard questions, but its overall edge over BM25 is within the confidence intervals. Answer quality was scored with RAGAS and a local 3B judge, and each metric was checked against deliberately wrong inputs: context precision (0.71) and factual correctness (0.21) passed, faithfulness passed but scored harshly. The 0.28 predates a bug in my evaluation that penalised the app for citing its sources, and a later run on fresh questions with that fixed scores 0.71 ([§9.2](#92-chasing-the-low-faithfulness-score-a-measurement-bug-a-judge-a-prompt-and-a-retrieval-sweep)). Answer relevancy and context recall failed their checks and are marked unreliable rather than trusted.
 
 **Fine-tuning** was also tried and is kept as an evaluated experiment, not a part of the served app: QLoRA taught a 1.5B model to cite (0 → 14 of 14 held-out prompts), but a better prompt on the served `qwen2.5:3b` did about as well with no training, so nothing fine-tuned is deployed ([§18](#18-experiment-qlora-fine-tuning-evaluated-not-deployed)).
 
@@ -174,7 +174,7 @@ Recall@5 by kind of question:
 | Hybrid + reranker | 0.82 | 0.87 | 0.81 | 0.92 | 0.75 |
 
 - **The reranker helps most where it should.** It is best overall and clearly best on tables (0.87), figures (0.81) and the hard questions (0.75 vs 0.65 for BM25). But its overall interval overlaps BM25's, so the overall edge is suggestive, not proven.
-- **Dense-only retrieval is the weakest**, by a margin larger than the intervals. Plain rank fusion does not beat BM25 on text (0.80 vs 0.84), because the weaker dense list dilutes it. A weighted fusion is a natural next experiment and was not tried.
+- **Dense-only retrieval is the weakest**, by a margin larger than the intervals. Plain rank fusion does not beat BM25 on text (0.80 vs 0.84), because the weaker dense list dilutes it. A weighted fusion was the obvious next experiment; it was tried and it did not help (§9.2).
 - **Tables and figures are retrievable.** BM25 is poor on them (0.60, 0.62) since their chunks are numbers and short captions; the structure-aware chunks are found mostly through the embeddings and the reranker. Table and figure subsets are small (30 and 16), so read those columns loosely.
 - **The right paper is almost always found** (94–99% in the top 5), even when the exact chunk is not; chunk-level recall is the strict number because another chunk of the same paper that also answers counts as a miss.
 
@@ -215,34 +215,59 @@ python scripts/eval_ragas.py controls --n 20 && python scripts/eval_ragas.py sum
 ```
 The Evaluation page in the UI shows all of this from `experiments/eval/`.
 
-### 9.2 A less harsh judge, and a prompt change that did not move the scores
+### 9.2 Chasing the low faithfulness score: a measurement bug, a judge, a prompt and a retrieval sweep
 
-The faithfulness (0.28) and factual correctness (0.21) figures above looked low. I checked whether that was the answers or the measurement, and tried to fix both. Two changes, each tested.
+Faithfulness of 0.28 sat oddly beside Recall@5 of 0.83: if the right passage reaches the model four times in five, its answers should not be mostly unsupported. That gap was worth chasing, and most of it turned out to be measurement rather than the system. Everything below was checked; two of the four attempts failed and are reported as failures.
 
-**A calibrated faithfulness judge.** The stock RAGAS prompt asks whether a statement "can be directly inferred" from the context, and a 3B judge reads that very strictly: an answer copied from its own source scored only 0.45. I changed that one instruction to accept faithful paraphrases while still requiring numbers, names and results to match and ignoring citation markers and label words (`ADAPTED_NLI` in `scripts/eval_ragas.py`). The acceptance rule was written down before running it: the true-context score must rise, an unrelated context must still score at most 0.1, and the gap must stay at least 0.4. It passed (`experiments/eval/judge_controls_adapted.json`, n = 20 pairs):
+**1. The judge was penalising the app for citing (a bug in my evaluation, not in the app).** BioLit's answers carry `[n]` markers on purpose. RAGAS splits an answer into statements, and it was turning each marker into a statement of its own — "[2] refers to a source" — which the judge then marked unsupported, because no paper contains the literal text "[2]". A sentence copied verbatim from its source scored 0. Markers and claim labels are formatting, not assertions about the papers (the app's own verifier strips them too), so `clean_answer` in `scripts/eval_ragas.py` now removes them before judging. The stored answers are untouched, and a claim the pipeline flagged as unverified stays in the text and is still scored. On 10 answers re-scored both ways, faithfulness went from 0.59 to 0.90. **Every faithfulness number published before this fix was too low**, including the 0.28 in the table above, which has not yet been re-measured end to end.
+
+**2. A calibrated judge.** The stock RAGAS instruction asks whether a statement "can be directly inferred" from the context, which a 3B judge reads very strictly. The adapted instruction (`ADAPTED_NLI`) accepts faithful paraphrase but still requires numbers and names to match. The acceptance rule was fixed before running it: the true-context score must rise, an unrelated context must still score at most 0.1, and the gap must stay at least 0.4. It passed (`experiments/eval/judge_controls_adapted.json`, 20 pairs):
 
 | Judge | True context | Unrelated context | Gap | Right case scored higher |
 |---|---|---|---|---|
 | Stock | 0.45 | 0.00 | 0.45 | 58% |
 | Adapted | 0.80 | 0.00 | 0.80 | 95% |
 
-On the same 39 original answers, faithfulness moves from **0.28 to 0.39** (35 answers scored by both). The judge is more tolerant of paraphrase, not of wrong content, since unrelated contexts still score 0. Any faithfulness figure should be quoted together with which judge produced it.
+The judge became more tolerant of paraphrase, not of wrong content: an unrelated context still scores 0. Any faithfulness figure here should be quoted together with the judge that produced it.
 
-**A plainer question-answering prompt.** Answers that carried the model's `SUPPORTED CLAIM` / `INTERPRETATION` labels had scored about half as faithful as the rest (0.16 vs 0.33), so `QA_RULES` in `backend/app/generation/prompts.py` drops the labels, asks the model to stay close to the evidence's wording, and to answer directly and stop. Synthesis tasks (summaries, comparisons, research gaps) keep the labelled rules. Because the change was motivated by the 39 judged answers, it was tested on **29 different questions**, with both prompts answering the same ones and a paired comparison (`scripts/eval_prompt_ab.py`, `experiments/eval/prompt_ab.json`):
+**3. The question-answering prompt.** Three changes, each prompted by reading answers that scored badly:
+- the mandatory `SUPPORTED CLAIM` / `INTERPRETATION` labels are gone for question answering (answers carrying them had scored about half as faithful; synthesis tasks keep them);
+- a marker on its own is not an answer. An early version of this prompt made the model reply `[4]` to 9 of 29 questions — a regression I introduced and caught — so the pipeline now retries such a reply and otherwise says plainly that the evidence does not state the answer;
+- the model is told to find the evidence block naming the exact subject of the question and to copy the value with its units, because with the right chunk already in context it was still answering with a related number from a different block.
 
-| Balanced mode, 29 fresh questions | Old prompt | New prompt | Paired change (95% interval) |
-|---|---|---|---|
-| Faithfulness (adapted judge) | 0.45 | 0.49 | +0.04 (−0.08 to +0.16) |
-| Factual correctness (F1) | 0.25 | 0.23 | 0.00 (−0.15 to +0.12) |
-| Median answer length | 58 words | 21 words | references are 23 |
-| Answers carrying labels | 5 of 29 | 0 | |
-| Citation coverage | 0.61 | 0.82 | |
-| Claims flagged "check source" | 52% | 48% | |
-| Source chunk in the context | 79% | 79% | same retrieval |
+Prompts no longer contain an example sentence: the model copied "Method A improves recall over baseline B" into real answers as though it were a finding.
 
-**What this shows.** The prompt change did **not** measurably improve faithfulness or factual correctness: both intervals include zero. It did make answers as short as the references, remove the labels, and raise the share of claims that cite a source from 61% to 82%, so it was kept for those reasons. Faithfulness of about 0.45–0.49 under the calibrated judge is the honest current figure; factual correctness stays at about 0.2–0.25 (an F1 against one-sentence, model-written references), and I would not present it as a strength.
+**4. Retrieval: swept, already at its best.** `scripts/sweep_retrieval.py` searched the weight given to the dense and BM25 rankings, the number of fused candidates the reranker re-scores, and the retrieval depth — eight settings, scored on the 144 labelled questions with no LLM. The setting was chosen on half the questions and measured on the other half.
 
-**Caveats.** The adapted judge was validated on 20 pairs and is still a 3B model. The new answers make fewer claims (1.4 vs 2.6 on average), so completeness could be lower, which the F1 does not rule out and recall was not measured separately. The two arms were also not re-scored with the stock judge for lack of time; the stock-versus-adapted comparison above uses the original 39 answers only.
+| Setting | Recall@1 | Recall@5 | Recall@10 | MRR |
+|---|---|---|---|---|
+| Shipped (equal weights, 20 candidates) | 0.38 | **0.82** | 0.88 | 0.56 |
+| Best the sweep could find | 0.38 | 0.82 | 0.88 | 0.56 |
+
+Nothing beat what the app already does. Weighting BM25 above dense — the experiment §9.1 suggested — made it *worse* (0.83 to 0.81 on the tuning half), so the reranker was evidently already recovering from the weak dense list. Deeper candidate pools did not help either. Widening the evidence given to the model from 5 blocks to 8 was tried separately and **hurt**: the source chunk reached the model more often, but the answers got worse, since a 3B model is distracted by more context. All three were reverted; `reciprocal_rank_fusion` keeps the `weights` parameter, defaulting to the equal weights that won.
+
+**Where that leaves the numbers.** On 29 questions that were not used to design any of this, with the marker bug fixed and the calibrated judge:
+
+| Balanced mode, 29 fresh questions | Old prompt | New prompt |
+|---|---|---|
+| Faithfulness | 0.60 | 0.71 |
+| Factual correctness (F1) | 0.18 | 0.25 |
+| Median answer length | 58 words | 35 words (references are 23) |
+| Answers carrying labels | 5 of 29 | 0 |
+
+The "new prompt" column covers the first two prompt changes above. The third (find the block that names the question's subject) was measured only with the judge-free proxy while this was written: on the same 29 questions it raised the share of answers containing every number from the reference answer from 6 of 18 to 8 of 18, with tables going from 3 of 6 to 4 of 6. At that sample size the difference could be chance, and it has not yet been confirmed with the judge.
+
+Faithfulness breaks down as 0.81 on text questions, 0.58 on tables and 0.28 on figures; and as 0.77 when the labelled source chunk reached the model against 0.44 when it did not. Factual correctness is 0.30 when the source chunk was retrieved and 0.07 when it was not.
+
+**What is still weak, stated plainly.** Factual correctness of about 0.25 is poor, and I would not present it as a strength. Reading the failures, it comes from three different things, and only the first is a fault of the system:
+- the model answers something true from the evidence but not the fact that was asked — for example giving F1 by tissue type when the question asked by cancer type;
+- the reference answers are model-written and some are wrong (`q091` says 0.9721 where the table says 0.9621) or target a different aspect than the question's plain reading;
+- the correctness judge is itself a 3B model and is noisy: it scored 0 for an answer that was almost word for word its reference.
+
+So the honest summary is that the answers are now mostly faithful to what was retrieved, but often are not the specific fact the evaluation set expected. Separating a real error from a bad label needs the human-checked question set described in §15, which has not been built.
+
+**A faster loop.** A judge run costs 25–40 minutes for 29 answers, too slow to iterate against, so `scripts/score_answers_fast.py` scores answers against the reference with no LLM — are the reference's numbers present, and how much of its wording — in about a second. It ranks variants during iteration; it is not factual correctness, and the judge produces the figures that get reported.
+
 ## 10. Installation
 
 Requirements: Python 3.11+ (a compatible 3.12 works — used in development), Node.js 18+, [Ollama](https://ollama.com/download) installed and running, and for fine-tuning, an NVIDIA GPU with CUDA (4GB+ VRAM is enough for the default 1.5B QLoRA config; see `scripts/check_hardware.py`).
@@ -322,6 +347,8 @@ Writes latency + citation-quality results per RAG mode to `data/results/` and `e
 | `python scripts/build_eval_set.py` | Generate the labelled question set (text, table, figure questions) with a local model |
 | `python scripts/eval_retrieval.py` | Recall@k / MRR / nDCG for dense, BM25, hybrid and hybrid + reranker, with confidence intervals |
 | `python scripts/eval_ragas.py {generate,judge,controls,summary}` | RAGAS answer-quality metrics with a local judge, plus the judge-validity controls (runs in `.venv-eval`) |
+| `python scripts/sweep_retrieval.py` | Search fusion weights, candidate pool and retrieval depth against the labelled questions (no LLM, minutes) |
+| `python scripts/score_answers_fast.py <runs.jsonl>` | Judge-free proxy for answer quality: reference numbers present, reference-term recall |
 | `python scripts/eval_prompt_ab.py {generate,judge,summary}` | Paired before/after test of a prompt change on fresh questions (runs in `.venv-eval`) |
 | `python scripts/calibrate_grounding.py {collect,analyze}` | Collect claims + LLM verdicts from a running backend, then measure how well the fast grounding flag agrees with them |
 | `python scripts/smoke_test_api.py` | Exercise and validate every endpoint of a running backend (see §14) |

@@ -271,3 +271,32 @@ class TestRerankerLive:
         ]
         results = reranker.rerank("cancer diagnosis with deep learning", candidates, top_k=2)
         assert results[0][0].chunk_id == "c2"
+
+
+# ---------------------------------------------------------------- weighted rank fusion
+def _chunk(cid):
+    from backend.app.models.schemas import Chunk
+    return Chunk(chunk_id=cid, document_id="d", page_number=1, section="Results", text=cid, token_count=3)
+
+
+def test_weights_let_one_ranker_outrank_the_other():
+    from backend.app.retrieval.hybrid import reciprocal_rank_fusion
+
+    dense = [(_chunk("a"), 0.9), (_chunk("b"), 0.8)]
+    sparse = [(_chunk("b"), 5.0), (_chunk("a"), 4.0)]
+
+    equal = [c.chunk_id for c, _ in reciprocal_rank_fusion([dense, sparse], k=60)]
+    assert set(equal) == {"a", "b"}                                   # a tie, decided by insertion order
+
+    bm25_heavy = [c.chunk_id for c, _ in reciprocal_rank_fusion([dense, sparse], k=60, weights=[1.0, 2.0])]
+    assert bm25_heavy[0] == "b"                                       # the sparse list's top result wins
+    dense_heavy = [c.chunk_id for c, _ in reciprocal_rank_fusion([dense, sparse], k=60, weights=[2.0, 1.0])]
+    assert dense_heavy[0] == "a"
+
+
+def test_omitted_weights_behave_exactly_like_the_unweighted_default():
+    from backend.app.retrieval.hybrid import reciprocal_rank_fusion
+
+    lists = [[(_chunk("a"), 1.0), (_chunk("c"), 0.5)], [(_chunk("c"), 2.0), (_chunk("b"), 1.0)]]
+    assert [(c.chunk_id, round(s, 6)) for c, s in reciprocal_rank_fusion(lists, k=60)] == \
+           [(c.chunk_id, round(s, 6)) for c, s in reciprocal_rank_fusion(lists, k=60, weights=[1.0, 1.0])]

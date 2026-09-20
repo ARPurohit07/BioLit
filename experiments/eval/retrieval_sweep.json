@@ -1,0 +1,144 @@
+{
+  "n_questions": 144,
+  "n_tune": 72,
+  "n_held_out": 72,
+  "grid": [
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 1.0,
+      "candidate_k": 20,
+      "depth": 20,
+      "tune": {
+        "recall@1": 0.6528,
+        "recall@3": 0.7639,
+        "recall@5": 0.8333,
+        "recall@10": 0.9167,
+        "mrr": 0.7336,
+        "ndcg@10": 0.7772
+      }
+    },
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 1.5,
+      "candidate_k": 20,
+      "depth": 20,
+      "tune": {
+        "recall@1": 0.6528,
+        "recall@3": 0.7639,
+        "recall@5": 0.8056,
+        "recall@10": 0.8889,
+        "mrr": 0.7243,
+        "ndcg@10": 0.7633
+      }
+    },
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 2.0,
+      "candidate_k": 20,
+      "depth": 20,
+      "tune": {
+        "recall@1": 0.6528,
+        "recall@3": 0.7639,
+        "recall@5": 0.8056,
+        "recall@10": 0.8889,
+        "mrr": 0.7243,
+        "ndcg@10": 0.7633
+      }
+    },
+    {
+      "dense_weight": 0.5,
+      "bm25_weight": 1.0,
+      "candidate_k": 20,
+      "depth": 20,
+      "tune": {
+        "recall@1": 0.6528,
+        "recall@3": 0.7639,
+        "recall@5": 0.8056,
+        "recall@10": 0.8889,
+        "mrr": 0.7243,
+        "ndcg@10": 0.7633
+      }
+    },
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 1.5,
+      "candidate_k": 40,
+      "depth": 40,
+      "tune": {
+        "recall@1": 0.625,
+        "recall@3": 0.75,
+        "recall@5": 0.8194,
+        "recall@10": 0.9306,
+        "mrr": 0.7127,
+        "ndcg@10": 0.764
+      }
+    },
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 2.0,
+      "candidate_k": 40,
+      "depth": 40,
+      "tune": {
+        "recall@1": 0.625,
+        "recall@3": 0.75,
+        "recall@5": 0.8333,
+        "recall@10": 0.9167,
+        "mrr": 0.7128,
+        "ndcg@10": 0.7612
+      }
+    },
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 1.0,
+      "candidate_k": 40,
+      "depth": 40,
+      "tune": {
+        "recall@1": 0.6389,
+        "recall@3": 0.75,
+        "recall@5": 0.7917,
+        "recall@10": 0.9306,
+        "mrr": 0.7152,
+        "ndcg@10": 0.7653
+      }
+    },
+    {
+      "dense_weight": 1.0,
+      "bm25_weight": 1.5,
+      "candidate_k": 60,
+      "depth": 60,
+      "tune": {
+        "recall@1": 0.6111,
+        "recall@3": 0.75,
+        "recall@5": 0.8056,
+        "recall@10": 0.9167,
+        "mrr": 0.6993,
+        "ndcg@10": 0.7503
+      }
+    }
+  ],
+  "chosen": {
+    "dense_weight": 1.0,
+    "bm25_weight": 1.0,
+    "candidate_k": 20,
+    "depth": 20
+  },
+  "held_out": {
+    "shipped": {
+      "recall@1": 0.375,
+      "recall@3": 0.7222,
+      "recall@5": 0.8194,
+      "recall@10": 0.875,
+      "mrr": 0.5603,
+      "ndcg@10": 0.638
+    },
+    "best": {
+      "recall@1": 0.375,
+      "recall@3": 0.7222,
+      "recall@5": 0.8194,
+      "recall@10": 0.875,
+      "mrr": 0.5603,
+      "ndcg@10": 0.638
+    }
+  },
+  "note": "Chunk level, after reranking. The setting was chosen on the tuning half; held_out is measured on the other half. Recall with one labelled chunk per question equals hit rate."
+}
