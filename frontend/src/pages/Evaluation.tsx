@@ -35,8 +35,8 @@ export default function Evaluation() {
       <div className="page-header">
         <h1>Evaluation</h1>
         <p>
-          Citation behaviour of the model options, generation faithfulness, and latency across RAG
-          modes.
+          Retrieval quality on labelled questions, answer quality judged with RAGAS, and latency across
+          RAG modes. The fine-tuning experiment's results are at the bottom.
         </p>
       </div>
 
@@ -57,48 +57,6 @@ export default function Evaluation() {
         <>
           {summary.variant !== "unknown" && summary.variant !== "none" && (
             <p className="eval-variant mono">variant: {summary.variant}</p>
-          )}
-
-          {summary.citation_comparison && (
-            <div className="eval-section">
-              <h3>Citation behaviour on held-out prompts</h3>
-              <div className="card eval-chart-card">
-                <table className="eval-latency-table">
-                  <thead>
-                    <tr>
-                      <th>Configuration</th>
-                      <th>Cites [n]</th>
-                      <th>Valid ids</th>
-                      <th>Passes checks</th>
-                      <th>Val</th>
-                      <th>Test</th>
-                      <th>Sentences cited</th>
-                      <th>Avg words</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.citation_comparison.configs.map((c) => (
-                      <tr key={c.name} title={c.description}>
-                        <td>{c.name}</td>
-                        <td className="mono">{c.cites_any}/{c.n}</td>
-                        <td className="mono">{c.valid_ids}/{c.n}</td>
-                        <td className="mono">{c.passes_checker}/{c.n}</td>
-                        <td className="mono">{c.val_passes}/{c.val_n}</td>
-                        <td className="mono">{c.test_passes}/{c.test_n}</td>
-                        <td className="mono">{(c.avg_sentence_coverage * 100).toFixed(0)}%</td>
-                        <td className="mono">{c.avg_answer_words.toFixed(0)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="eval-note">{summary.citation_comparison.prompts}</p>
-              <ul className="eval-caveats">
-                {summary.citation_comparison.caveats.map((c) => (
-                  <li key={c}>{c}</li>
-                ))}
-              </ul>
-            </div>
           )}
 
           {summary.rag_eval && <RagEvalSections data={summary.rag_eval} />}
@@ -254,6 +212,51 @@ export default function Evaluation() {
                 backend's <span className="mono">LatencyBenchmarkEntry</span> schema does not
                 carry a per-mode faithfulness value. See Settings for where this may change.
               </p>
+            </div>
+          )}
+
+          {summary.citation_comparison && (
+            <div className="eval-section">
+              <h3>Fine-tuning experiment: citation behaviour on held-out prompts</h3>
+              <div className="card eval-chart-card">
+                <table className="eval-latency-table">
+                  <thead>
+                    <tr>
+                      <th>Configuration</th>
+                      <th>Cites [n]</th>
+                      <th>Valid ids</th>
+                      <th>Passes checks</th>
+                      <th>Val</th>
+                      <th>Test</th>
+                      <th>Sentences cited</th>
+                      <th>Avg words</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.citation_comparison.configs.map((c) => (
+                      <tr key={c.name} title={c.description}>
+                        <td>{c.name}</td>
+                        <td className="mono">{c.cites_any}/{c.n}</td>
+                        <td className="mono">{c.valid_ids}/{c.n}</td>
+                        <td className="mono">{c.passes_checker}/{c.n}</td>
+                        <td className="mono">{c.val_passes}/{c.val_n}</td>
+                        <td className="mono">{c.test_passes}/{c.test_n}</td>
+                        <td className="mono">{(c.avg_sentence_coverage * 100).toFixed(0)}%</td>
+                        <td className="mono">{c.avg_answer_words.toFixed(0)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="eval-note">
+                Not the deployed model: this compares the fine-tuned adapters with prompting, and the app serves the prompted
+                <span className="mono"> qwen2.5:3b</span>. {summary.citation_comparison.prompts}
+              </p>
+              <ul className="eval-caveats">
+                {summary.citation_comparison.caveats.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
             </div>
           )}
 

@@ -50,7 +50,7 @@ export default function Settings() {
             </tr>
             <tr>
               <td className="mono">configs/training.yaml</td>
-              <td>QLoRA fine-tuning hyperparameters for the local base model.</td>
+              <td>QLoRA fine-tuning hyperparameters (experiment; the app does not use the result).</td>
             </tr>
           </tbody>
         </table>

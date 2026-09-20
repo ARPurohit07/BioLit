@@ -1,4 +1,6 @@
-# BioLit fine-tuning pipeline
+# BioLit fine-tuning pipeline (experiment; not used by the app)
+
+This is an evaluated side study: QLoRA taught a small model to cite, but a better prompt on the served `qwen2.5:3b` did about as well, so nothing here is deployed. The results and reasoning are in the main README, section 18 ("Experiment: QLoRA fine-tuning").
 
 Conservative defaults throughout are sized for an **NVIDIA RTX 3050 Laptop
 GPU (4096 MiB / 4GB VRAM)**: 4-bit QLoRA on `Qwen/Qwen2.5-1.5B-Instruct`,
