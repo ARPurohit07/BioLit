@@ -1,6 +1,6 @@
 # BioLit — Evidence-Grounded Scientific Literature Synthesis
 
-A research assistant for biomedical / drug-discovery literature. **Retrieval, embeddings, reranking, the index and the claim extractor run on your machine.** Answers are written by a large model through OpenRouter by default, which means the question and the retrieved passages of your indexed papers are sent to that service; set `generation.provider: ollama` in `configs/models.yaml` (and `ollama pull qwen2.5:3b`) for a setup where nothing leaves the machine, at the cost of the answer quality a small model gives. The app reports which one is active on `GET /api/health`.
+A research assistant for biomedical / drug-discovery literature. **Retrieval, embeddings, reranking, the index and the claim extractor run on your machine.** Where the answer is written is a setting ([§5](#5-where-the-answer-is-written)): by default a small model through local Ollama, so nothing leaves the machine; optionally a much larger `gpt-oss-120b`, through Ollama's cloud models or OpenRouter, which sends the question and the retrieved passages of your papers to that service. The Dashboard shows a "remote" badge and `GET /api/health` reports which one is active.
 
 BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with structure-aware chunking (text, tables and figures), claim-level citation verification, and an evaluation framework that measures — rather than assumes — whether any of that actually helps. A QLoRA fine-tuning experiment is included too, reported as an evaluated side study that the app does not use ([§18](#18-experiment-qlora-fine-tuning-evaluated-not-deployed)).
 
@@ -8,18 +8,23 @@ BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with structure-aw
 
 ## Status and results at a glance
 
-**Works today (verified):** an end-to-end local pipeline over **50 arXiv papers** (1,484 indexed chunks: text, tables and figure captions) — ingest, hybrid retrieval, rerank, cited answer, claim verification, React UI. `GET /api/health` reports `ok`, and the test suite passes (166 tests, 4 skipped; 146 of them need no models and run in CI). A smoke test exercises every endpoint against the running backend and validates the responses. The app serves `qwen2.5:3b` through Ollama.
+**Works today (verified):** an end-to-end pipeline over **50 arXiv papers** (1,476 indexed chunks: text, tables and figure captions) — ingest, hybrid retrieval, rerank, cited answer, claim verification, React UI. `GET /api/health` reports `ok`. The model-free test suite (196 tests, no GPU or downloads) passes; a smoke test exercises every endpoint against a running backend.
 
-**Retrieval and answer quality, measured on the 50-paper corpus** (144 labelled questions; full method, intervals and caveats in [§9.1](#91-retrieval-and-answer-quality-50-papers)):
+**Measured on 126 audited questions** (every reference answer was checked against its source; full method, intervals and caveats in [§9](#9-evaluation)):
 
-| | Recall@5 | MRR |
-|---|---|---|
-| BM25 | 0.76 | 0.62 |
-| Dense only | 0.57 | 0.44 |
-| Hybrid (rank fusion) | 0.76 | 0.59 |
-| **Hybrid + reranker (Balanced mode)** | **0.83** | **0.65** |
+| Retrieval, hybrid + reranker (Balanced mode) | Score |
+|---|---|
+| Recall@5 (exact chunk) | 0.83 [0.77–0.90] |
+| Right paper in top 5 | 0.99 |
+| Answer wording in the top-5 text | 0.88 |
 
-The reranker is best overall and on tables (0.87), figures (0.81) and hard questions, but its overall edge over BM25 is within the confidence intervals. Answer quality was scored with RAGAS and a local 3B judge, and each metric was checked against deliberately wrong inputs: context precision (0.71) and factual correctness (0.21) passed, faithfulness passed but scored harshly. The 0.28 predates a bug in my evaluation that penalised the app for citing its sources, and a later run on fresh questions with that fixed scores 0.71 ([§9.2](#92-chasing-the-low-faithfulness-score-a-measurement-bug-a-judge-a-prompt-and-a-retrieval-sweep)). Answer relevancy and context recall failed their checks and are marked unreliable rather than trusted.
+| Answers by `gpt-oss-120b`, Balanced mode | All 130 audited | Held-out 62, earlier prompt | Held-out 62, current prompt |
+|---|---|---|---|
+| Faithfulness | 0.91 | 0.87 | 0.94 |
+| Factual correctness (F1, sentence references) | 0.42 | 0.45 | 0.54 |
+| Table-value questions with the exact value in the answer | 71% | | |
+
+Read these with the caveats: the judge is also `gpt-oss-120b` (the same family as the generator, so scores may flatter it), factual correctness is agreement with model-written references that are narrower than a good answer, and the held-out gain is +0.09 with an interval of 0.01–0.18. The judge passed right-versus-wrong controls (faithfulness 0.92 vs 0.01, correctness 0.99 vs 0.00). Several ideas that did not help are reported as negative results in [§9.4](#94-ideas-that-did-not-help).
 
 **Fine-tuning** was also tried and is kept as an evaluated experiment, not a part of the served app: QLoRA taught a 1.5B model to cite (0 → 14 of 14 held-out prompts), but a better prompt on the served `qwen2.5:3b` did about as well with no training, so nothing fine-tuned is deployed ([§18](#18-experiment-qlora-fine-tuning-evaluated-not-deployed)).
 
@@ -32,7 +37,7 @@ Given a folder of biomedical PDFs, BioLit:
 1. Parses them into page- and section-aware chunks (PyMuPDF), with tables kept as Markdown grids and figures as captioned crops.
 2. Indexes those chunks with both dense embeddings (FAISS) and lexical search (BM25).
 3. Retrieves and reranks evidence for a research question in one of three configurable modes (Fast / Balanced / High-Faithfulness).
-4. Generates an answer through a local Ollama model, with every factual sentence numbered against its source evidence.
+4. Generates an answer with the configured model (local Ollama by default), with every factual sentence numbered against its source evidence and every number checked against the block it cites.
 5. Extracts the claims the model made, re-checks each one against its cited evidence with a second LLM pass, and labels it `SUPPORTED` / `PARTIALLY_SUPPORTED` / `UNSUPPORTED` / `CONTRADICTED`.
 6. Surfaces all of this — answer, citations, evidence text, page numbers, verification status, latency — in a React evidence-viewer UI.
 7. Includes a QLoRA fine-tuning experiment (training, evaluation and export code, all tested). It is an evaluated side study, not part of the served pipeline: see [§18](#18-experiment-qlora-fine-tuning-evaluated-not-deployed).
@@ -53,7 +58,7 @@ flowchart TD
     E --> F
     F --> G[Reranker — bge-reranker-base]
     G --> H[Evidence Context]
-    H --> I[Local Ollama LLM]
+    H --> I[LLM — Ollama local or cloud, or OpenRouter]
     I --> J[Claim Extraction]
     J --> K[Evidence Verification]
     K -->|Supported| L[Citation Added]
@@ -67,9 +72,17 @@ flowchart TD
 
 Facts belong in the index, not the weights. RAG is what lets BioLit answer questions about papers added five minutes ago, cite a specific page, and be updated by dropping in a new PDF — none of which fine-tuning alone can do.
 
-## 5. Why Ollama?
+## 5. Where the answer is written
 
-Ollama is the fully local LLM path. The app can also send generation to OpenRouter (`generation.provider` in `configs/models.yaml`), trading privacy for answer quality; both clients share one interface, so the pipeline and the claim verifier work with either.
+Only generation can leave the machine; retrieval, embeddings, reranking and the index never do. `generation.provider` in `configs/models.yaml` (or `BIOLIT_GENERATION_PROVIDER` in `.env`) chooses:
+
+| Provider | Model | Leaves the machine? | Needs |
+|---|---|---|---|
+| `ollama` (default) | `qwen2.5:3b` or any model you have pulled | no | `ollama pull qwen2.5:3b` |
+| `ollama` with `OLLAMA_MODEL=gpt-oss:120b-cloud` | 120B, run by Ollama's cloud | yes | signed-in Ollama |
+| `openrouter` | `openai/gpt-oss-120b` | yes | `OPENROUTER_KEY` in `.env` and credit |
+
+Both clients share one interface, so the pipeline and the claim verifier work with either. If `openrouter` is chosen without a key, the app falls back to local Ollama and says so in the startup log. Copy `.env.example` to `.env` to set any of these; `.env` is git-ignored. The 4 GB development GPU cannot hold a 7B model, which is why the larger model is only offered remotely.
 
 ## 6. Repository layout
 
@@ -134,9 +147,9 @@ Citation Precision, Citation Coverage and Faithfulness are computed in `backend/
 
 ### 9.1 Retrieval and answer quality (50 papers)
 
-The first evaluation covered six papers and 14 prompts, which is too little to say anything about retrieval. This one runs over **50 arXiv papers** on machine learning for drug discovery (drug response, drug–target and drug–drug interaction, repurposing, synergy, molecular property and binding-affinity prediction; 809 pages; the list is in `configs/corpus_arxiv.json`) with **144 labelled questions** from 49 of them: 98 about text passages, 30 about tables and 16 about figure captions.
+The first evaluation covered six papers and 14 prompts, which is too little to say anything about retrieval. This one runs over **50 arXiv papers** on machine learning for drug discovery (drug response, drug–target and drug–drug interaction, repurposing, synergy, molecular property and binding-affinity prediction; 809 pages; the list is in `configs/corpus_arxiv.json`).
 
-**How the questions were made.** For each sampled chunk a local `qwen2.5:3b` writes one question and a reference answer (`scripts/build_eval_set.py`). The source chunk is the ground-truth label. A question is kept only if it is self-contained (no "this paper"), names something specific (a model, dataset or number, so it has one right passage), does not copy a run of words from the passage, and has a reference answer that is grounded in the chunk (for tables: every number appears in the table). About 40% of candidates survive.
+**How the questions were made and audited.** For each sampled chunk a language model writes one question and a reference answer (`scripts/build_eval_set.py`), and the source chunk is the ground-truth label. A question is kept only if it is self-contained, names something specific, does not copy a run of words from the passage, and has a reference grounded in the chunk. That gave 144 questions, but the references had never been checked. `scripts/verify_references.py` asked `gpt-oss-120b` whether each reference is supported by its own source chunk: 113 were correct, 17 wrong, 13 unsupported and 1 was a bibliography page. The 17 wrong ones were corrected and the rest dropped, leaving **130 audited questions** (`eval_set_audited.jsonl`). Four more were removed after the tuning below exposed bad references (one of them, `q072`, showed that the table extractor loses a column), leaving **126**: 89 about text, 24 tables and 13 figure captions, from 49 papers (`eval_set_final.jsonl`). The 126 are split into 64 to tune on and 62 that were only used to confirm (`eval_set_dev.jsonl`, `eval_set_test.jsonl`).
 
 **Metrics used**
 
@@ -155,30 +168,31 @@ The first evaluation covered six papers and 14 prompts, which is too little to s
 | Citations | Coverage, precision, unsupported rate, "check source" rate | Citation behaviour (§8) | verifier / none |
 | Judge validity | Right-vs-wrong control | Can the judge tell a correct input from a deliberately wrong one | judge |
 
-**Retrieval results** (chunk level, all 144 questions; brackets are 95% intervals; `experiments/eval/retrieval_eval.json`):
+**Retrieval results** (chunk level, all 126 audited questions; brackets are 95% intervals; `experiments/eval/retrieval_eval.json`):
 
 | Strategy | Recall@1 | Recall@5 | Recall@10 | MRR | nDCG@10 | Right paper in top 5 | Median latency |
 |---|---|---|---|---|---|---|---|
-| BM25 | 0.50 | 0.76 [0.69–0.83] | 0.87 | 0.62 | 0.68 | 97% | 5 ms |
-| Dense (bge-small) | 0.33 | 0.57 [0.49–0.65] | 0.72 | 0.44 | 0.50 | 94% | 11 ms |
-| Hybrid (dense + BM25, rank fusion) | 0.47 | 0.76 [0.69–0.83] | 0.85 | 0.59 | 0.65 | 98% | 16 ms |
-| **Hybrid + reranker** (Balanced mode) | **0.51** | **0.83 [0.76–0.89]** | **0.90** | **0.65** | **0.71** | 99% | 240 ms |
+| BM25 | 0.53 | 0.81 [0.74–0.87] | 0.90 | 0.66 | 0.71 | 97% | 5 ms |
+| Dense (bge-small) | 0.36 | 0.58 [0.50–0.67] | 0.72 | 0.46 | 0.52 | 94% | 11 ms |
+| Hybrid (dense + BM25, rank fusion) | 0.49 | 0.78 [0.71–0.85] | 0.87 | 0.62 | 0.68 | 98% | 17 ms |
+| **Hybrid + reranker** (Balanced mode) | **0.52** | **0.83 [0.77–0.90]** | **0.91** | **0.65** | **0.72** | 99% | 205 ms |
 
 Recall@5 by kind of question:
 
-| | Text (n=98) | Table (n=30) | Figure (n=16) | Easy (n=63) | Hard (n=81) |
+| | Text (n=89) | Table (n=24) | Figure (n=13) | Easy (n=56) | Hard (n=70) |
 |---|---|---|---|---|---|
-| BM25 | 0.84 | 0.60 | 0.62 | 0.92 | 0.64 |
-| Dense | 0.50 | 0.70 | 0.75 | 0.63 | 0.52 |
-| Hybrid | 0.80 | 0.70 | 0.69 | 0.90 | 0.65 |
-| Hybrid + reranker | 0.82 | 0.87 | 0.81 | 0.92 | 0.75 |
+| BM25 | 0.85 | 0.71 | 0.69 | 0.93 | 0.71 |
+| Dense | 0.54 | 0.67 | 0.69 | 0.66 | 0.51 |
+| Hybrid | 0.81 | 0.71 | 0.69 | 0.89 | 0.69 |
+| Hybrid + reranker | 0.83 | 0.88 | 0.77 | 0.91 | 0.77 |
 
-- **The reranker helps most where it should.** It is best overall and clearly best on tables (0.87), figures (0.81) and the hard questions (0.75 vs 0.65 for BM25). But its overall interval overlaps BM25's, so the overall edge is suggestive, not proven.
-- **Dense-only retrieval is the weakest**, by a margin larger than the intervals. Plain rank fusion does not beat BM25 on text (0.80 vs 0.84), because the weaker dense list dilutes it. A weighted fusion was the obvious next experiment; it was tried and it did not help (§9.2).
-- **Tables and figures are retrievable.** BM25 is poor on them (0.60, 0.62) since their chunks are numbers and short captions; the structure-aware chunks are found mostly through the embeddings and the reranker. Table and figure subsets are small (30 and 16), so read those columns loosely.
-- **The right paper is almost always found** (94–99% in the top 5), even when the exact chunk is not; chunk-level recall is the strict number because another chunk of the same paper that also answers counts as a miss.
+- **The reranker helps most where it should**: it is best on tables (0.88 vs 0.71), figures and the hard questions (0.77 vs 0.71 for BM25). But its overall interval overlaps BM25's, so the overall edge is suggestive, not proven.
+- **Dense-only retrieval is the weakest**, by a margin larger than the intervals. Plain rank fusion does not beat BM25 on text (0.81 vs 0.85), because the weaker dense list dilutes it. A weighted fusion was tried and did not help (§9.2).
+- **Tables and figures are retrievable**, mostly through the embeddings and the reranker, since their chunks are numbers and short captions that BM25 scores poorly. The table and figure subsets are small (24 and 13), so read those columns loosely.
+- **The right paper is almost always found** (94–99% in the top 5); chunk-level recall is the strict number because another chunk of the same paper that also answers counts as a miss.
+- The numbers above were first measured on the unaudited 144 questions (Recall@5 0.83 as well, file kept as `retrieval_eval_144_unaudited.json`); auditing the references did not change the retrieval picture.
 
-**Answer quality (RAGAS, Balanced mode, 39 answers, judge `qwen2.5:3b`).** Each metric was also given a control test: a case where everything is right and one where a single input is deliberately wrong (an unrelated context, question or reference). A metric the judge cannot separate is not measuring what its name says.
+**Earlier answer-quality measurement (RAGAS, 39 answers, judge `qwen2.5:3b`) — kept for the record, superseded by [§9.3](#93-answer-quality-audited-references-a-large-judge-and-a-held-out-half).** It predates the marker-bug fix in §9.2, the audit of the references and the larger generator, and its 3B judge failed two of its five checks (the file it produced is archived as `ragas_summary_3b_judge.json`; the Evaluation page now shows §9.3). Each metric was also given a control test: a case where everything is right and one where a single input is deliberately wrong (an unrelated context, question or reference). A metric the judge cannot separate is not measuring what its name says.
 
 | RAGAS metric | Score | Answers scored | Judge check: right case vs wrong case | Verdict |
 |---|---|---|---|---|
@@ -197,21 +211,23 @@ Other measurements on the same 39 answers: the labelled source chunk was among t
 - Questions and reference answers come from the same small model family as the generator and the judge, from the chunk they are scored against, so their wording overlaps the passage (median 0.71 of the question's content words). That favours keyword search; the "hard" column is the fairer view.
 - Each question has a single labelled chunk, so chunk-level recall is a lower bound.
 - RAGAS was run on Balanced mode only, on 39 answers (one per paper or fewer). Fast and High-Faithfulness were not judged, and the 8 table and 4 figure answers are too few to read on their own.
-- **Reference answers can be wrong.** They are written by a 3B model. In `q091` ("AUC for N1=5 and N2=10 in Table 4") both the reference answer and the served model say 0.9721, but the table shows 0.9621 (0.9721 is the transposed N1=10, N2=5 cell). RAGAS faithfulness scored that answer 0, so the judge caught an error the evaluation set itself contains. Factual correctness therefore measures agreement with the reference, not with the truth, and the set was not hand-audited.
+- **Reference answers can be wrong.** They are written by a 3B model. In `q091` ("AUC for N1=5 and N2=10 in Table 4") both the reference answer and the served model say 0.9721, but the table shows 0.9621 (0.9721 is the transposed N1=10, N2=5 cell). RAGAS faithfulness scored that answer 0, so the judge caught an error the evaluation set itself contains. Factual correctness therefore measures agreement with the reference, not with the truth, and the set was not audited at that point; §9.1 above describes the audit that followed.
 - Structure extraction is best-effort: a table's header row can come out garbled or split across cells, which makes table questions harder to answer and to label correctly.
 
 ```bash
 python scripts/fetch_arxiv.py --target 50            # download the corpus into data/raw (list in configs/corpus_arxiv.json)
 python scripts/ingest.py --input data/raw && python scripts/build_index.py
 python scripts/build_eval_set.py --n 150             # needs Ollama with qwen2.5:3b; resumable
-python scripts/eval_retrieval.py                     # no LLM; about 2 minutes
+python scripts/verify_references.py                  # a large model checks each reference against its source chunk
+python scripts/eval_retrieval.py                     # no LLM; audited set by default; about 2 minutes
 # RAGAS runs in its own environment (it pins older LangChain packages than the app):
 python -m venv .venv-eval && .venv-eval/Scripts/pip install "ragas==0.2.15" langchain-ollama requests \
        "langchain-community==0.3.14" "langchain-core==0.3.29" "langchain==0.3.14" "langchain-openai==0.2.14" "langchain-ollama==0.2.2"
 ollama pull nomic-embed-text
-python scripts/eval_ragas.py generate --mode balanced --n 40      # with the backend running
-python scripts/eval_ragas.py judge --mode balanced                # about 40 minutes on a 4 GB GPU
-python scripts/eval_ragas.py controls --n 20 && python scripts/eval_ragas.py summary
+python scripts/eval_final.py generate --provider ollama     # answer every audited question (backend running)
+python scripts/eval_final.py judge --judge-model gpt-oss:120b-cloud
+python scripts/eval_ragas.py controls --judge-model gpt-oss:120b-cloud --n 20   # judge validity
+python scripts/publish_eval.py                       # write what the Evaluation page serves
 ```
 The Evaluation page in the UI shows all of this from `experiments/eval/`.
 
@@ -267,6 +283,42 @@ Faithfulness breaks down as 0.81 on text questions, 0.58 on tables and 0.28 on f
 So the honest summary is that the answers are now mostly faithful to what was retrieved, but often are not the specific fact the evaluation set expected. Separating a real error from a bad label needs the human-checked question set described in §15, which has not been built.
 
 **A faster loop.** A judge run costs 25–40 minutes for 29 answers, too slow to iterate against, so `scripts/score_answers_fast.py` scores answers against the reference with no LLM — are the reference's numbers present, and how much of its wording — in about a second. It ranks variants during iteration; it is not factual correctness, and the judge produces the figures that get reported.
+
+### 9.3 Answer quality: audited references, a large judge and a held-out half
+
+After §9.2 the remaining weak number was factual correctness, and the first question was whether that was the system or the yardstick. Three changes to the yardstick, then one to the system:
+
+1. **Audited references** (§9.1): 22% of the original references were wrong or unsupported by their own source, so part of the earlier "wrong answers" were right answers scored against a wrong target.
+2. **A value is not a claim.** RAGAS splits an answer into claims and compares them; a reference that is just a number (`0.856`, `18416`) cannot be split, so it scores 0 whatever the answer says. Half the zero scores came from these 28 questions, all about tables. They are now checked directly (thousands separators and a trailing ± term ignored), and RAGAS correctness is reported only on the sentence references.
+3. **A large judge, validated.** Answers by `gpt-oss-120b` are judged by the same model through Ollama's cloud (stock RAGAS prompts, markers stripped, empty answers scored 0). On 20 right-versus-wrong pairs it scored faithfulness 0.92 against 0.01 and correctness 0.99 against 0.00, so it passes the 0.4 separation gate.
+
+Results on the 130 audited answers (`final_result_cloud.json`): faithfulness **0.91** (126 scored), factual correctness **0.42** on the 102 sentence references, and the exact value present in **71%** of the 28 table-value answers (a further 4 were honest "insufficient evidence" answers). Faithfulness is 0.95 on text, 0.82 on tables and figures, and 0.94 when the labelled source chunk reached the model against 0.76 when it did not.
+
+**Diagnosing the correctness.** `scripts/diagnose_correctness.py` asks the large model why each low-scoring answer lost points. On the tuning half, of 22 low scorers whose source chunk was retrieved: incomplete 7, extra detail 6, wrong fact 4, equivalent 2, abstained 2, reference defect 1. Precision and recall were both near 0.4, so the answers were not merely too long; about 60% of the loss was answering a different scope from the question's.
+
+**The change: answer the scope of the question.** `QA_RULES` now says to answer every entity, metric and condition the question names and nothing it did not ask for, and to decline only after checking every evidence block. It was designed on the 64 tuning questions and read once on the 62 held-out ones (paired bootstrap, `scripts/compare_variant.py`):
+
+| Factual correctness (F1, sentence references) | Before | After | Change | 95% interval |
+|---|---|---|---|---|
+| Tuning half (n=51) | 0.358 | 0.413 | +0.058 | −0.011 to 0.137 |
+| **Held-out half (n=50)** | 0.454 | 0.545 | **+0.091** | **0.006 to 0.183** |
+
+Held-out precision rose from 0.51 to 0.59 and recall from 0.52 to 0.61; faithfulness moved from 0.87 to 0.94 (inside the noise); value questions were unchanged. The held-out gain is the only one whose interval excludes zero, and it is small in absolute terms.
+
+**Caveats that matter.** The variant bundles the scope rule with an extractive-answer rule that was added by hand, and its answers were served through Ollama cloud while the baseline was served through OpenRouter (which had run out of credit), so the serving path is a second change. The generator, the reference checker and the judge are all `gpt-oss-120b`, so the scores may flatter the system; a human-checked golden set is what would settle that. On the held-out half the remaining low scorers were 7 incomplete, 7 extra detail, 2 equivalent and 1 wrong fact (17 diagnosed): most of what is left is answering more or less than a narrow one-sentence reference, and a wrong fact was rare there (1 of 50), though it was 4 of 22 among the tuning half's low scorers.
+
+### 9.4 Ideas that did not help
+
+Each of these was a reasonable hypothesis, was measured, and was turned off or reverted. They are recorded so nobody repeats them without a new reason.
+
+| Idea | What was measured | Outcome |
+|---|---|---|
+| Semantic chunking (`chunking.semantic`) | Text chunks were large (median 252 tokens); embedding-boundary chunking cut the median to 82. Chunk-level Recall@5 seemed to rise 0.83 → 0.85, but smaller chunks split one label into many, so chunk recall is not comparable across chunkings. On granularity-neutral measures (answer wording in the top-5 text): 0.87 → 0.82, and answers with ≥80% of the reference covered 0.81 → 0.67. | Off. The model received half the context and less of the answer. Dense-only did improve (0.58 → 0.67), so it is worth revisiting at an equal context budget. |
+| Vision-model table transcription (`chunking.use_table_transcriptions`) | 59% of extracted tables have empty cells; value questions on them were answered 57% of the time against 86% for clean tables. A vision model rewrote 86 of 101 tables, accepting a rewrite only if every number appeared on the page. Table value answers went 19 → 15, faithfulness 0.87 → 0.79. | Off. The check proves a number is on the page, not that it is in the right cell (`q091`: 0.9621 became 0.9721, a neighbour). Write-up: `experiments/eval/table_transcription.md`. |
+| Larger embedder (`bge-base`) | Same chunks and questions, chosen on the tuning half, read on the held-out half; Recall@5 with the reranker 0.80 / 0.87 (bge-small) against 0.80 / 0.85 (bge-base). | Kept `bge-small`. `bge-large` did not fit on the 4 GB card. |
+| High-Faithfulness mode (LLM claim verification and regeneration) | 120B verifier against the Balanced answers, 64 tuning questions: correctness 0.413 → 0.409, faithfulness 0.907 → 0.930 (not significant), latency about 5 s → 11 s. The verifier flagged 0 of 64 answers. | No gain measured on these questions; the held-out half was not run. All results above are Balanced mode. |
+| Weighted rank fusion | Weighting BM25 above dense on the tuning half: Recall@5 0.83 → 0.81. | Reverted; equal weights stay (§9.2). |
+| Eight evidence blocks instead of five | With the 3B model the source chunk reached the model more often but answers got worse. | Reverted; five blocks. |
 
 ## 10. Installation
 
@@ -346,11 +398,17 @@ Writes latency + citation-quality results per RAG mode to `data/results/` and `e
 | `python scripts/fetch_arxiv.py --target 50` | Download the arXiv corpus into `data/raw` (recorded in `configs/corpus_arxiv.json`) |
 | `python scripts/build_eval_set.py` | Generate the labelled question set (text, table, figure questions) with a local model |
 | `python scripts/eval_retrieval.py` | Recall@k / MRR / nDCG for dense, BM25, hybrid and hybrid + reranker, with confidence intervals |
-| `python scripts/eval_ragas.py {generate,judge,controls,summary}` | RAGAS answer-quality metrics with a local judge, plus the judge-validity controls (runs in `.venv-eval`) |
+| `python scripts/eval_ragas.py {generate,judge,controls,summary}` | RAGAS answer-quality metrics (local or cloud judge via `--judge-model`), plus the judge-validity controls (runs in `.venv-eval`) |
 | `python scripts/sweep_retrieval.py` | Search fusion weights, candidate pool and retrieval depth against the labelled questions (no LLM, minutes) |
 | `python scripts/score_answers_fast.py <runs.jsonl>` | Judge-free proxy for answer quality: reference numbers present, reference-term recall |
 | `python scripts/eval_prompt_ab.py {generate,judge,summary}` | Paired before/after test of a prompt change on fresh questions (runs in `.venv-eval`) |
 | `python scripts/calibrate_grounding.py {collect,analyze}` | Collect claims + LLM verdicts from a running backend, then measure how well the fast grounding flag agrees with them |
+| `python scripts/verify_references.py` / `audit_eval_set.py` | Check each reference answer against its source chunk (large model) / deterministic checks on the question set |
+| `python scripts/eval_final.py {generate,judge,summary}` | The audited-set evaluation: generate answers, judge them (RAGAS, values checked directly), summarise |
+| `python scripts/compare_variant.py --half {dev,test} --tag T` | Paired before/after test of a pipeline change on one half of the question set |
+| `python scripts/diagnose_correctness.py --tag T` | Ask a large model why low-scoring answers lost points (incomplete, extra detail, wrong fact, bad reference) |
+| `python scripts/eval_embedders.py` / `transcribe_tables.py` / `compare_tables.py` | The embedder and table-transcription experiments (§9.4) |
+| `python scripts/publish_eval.py` | Write `experiments/eval/ragas_summary.json`, which the Evaluation page serves |
 | `python scripts/smoke_test_api.py` | Exercise and validate every endpoint of a running backend (see §14) |
 | `python -m pytest -q` | Run the test suite (see §14) |
 
@@ -375,10 +433,10 @@ FastAPI backend at `http://localhost:8000`. Key endpoints (full schemas in `back
 
 ```bash
 python -m pytest -q
-# 166 tests, 4 skipped. Some load real models, and the Ollama integration test only runs when Ollama is up.
+# Some tests load real models, and the Ollama integration test only runs when Ollama is up.
 
 python -m pytest -q --ignore=backend/tests/test_api.py --ignore=backend/tests/test_retrieval.py --ignore=tests/test_integration.py
-# The 146 model-free tests: seconds, no GPU, no downloads. This is what CI runs.
+# The model-free tests (196 with test_api excluded): seconds, no GPU, no downloads. This is what CI runs.
 
 python scripts/smoke_test_api.py            # start the backend first; about 10 minutes for the full run
 python scripts/smoke_test_api.py --quick    # skip High-Faithfulness and literature review (about 3 minutes)
@@ -390,8 +448,10 @@ The smoke test checks more than status codes: evidence ids run 1..n, every claim
 
 ## 15. Limitations
 
-- **Modest evidence base.** 50 papers on one subject, 144 labelled retrieval questions and 39 RAGAS-judged answers, all model-written (§9.1). Retrieval is now measured, but the intervals are wide, the citation study still uses only 14 prompts from two papers, and no human audited the questions or reference answers.
-- **Correctness is only roughly measured.** RAGAS factual correctness compares answers with model-written references, judged by a 3B model that failed its own validity check on two of five metrics (§9.1). The citation-study checks cover citation form and wording-level grounding and favour the style the training data rewards. A human-scored sample is still the missing piece.
+- **Modest evidence base.** 50 papers on one subject and 126 labelled questions, all model-written and checked by a model, not a person (§9.1, §9.3). Retrieval intervals are wide, the citation study still uses only 14 prompts from two papers, and no human has audited the questions or references.
+- **Correctness is only roughly measured.** Factual correctness compares answers with narrow one-sentence references and is judged by the same model family that wrote the answers, so it can flatter the system (§9.3). About 0.54 on the held-out half is mostly answers that say more or less than the reference, not wrong facts, but that is the model's own diagnosis. A human-scored golden set of about 40 items is the missing piece for any medical-grade claim.
+- **Table values are the weakest spot.** The exact value appears in 71% of table-value answers; 59% of extracted tables have empty cells, and a rewrite that looked safe made things worse (§9.4).
+- **Generation can leave the machine.** The strongest configuration uses a remote 120B model (§5); the local default is a 3B model and is noticeably weaker.
 - **The model still fails sometimes.** In High-Faithfulness mode it occasionally cites the wrong block, and it still leaves some sentences uncited (about 59% of claims were cited on the 14 held-out questions in Balanced mode); the verifier then correctly rejects those claims. The one-shot retry handles the case of no citations at all, not partial coverage. Multi-paper comparisons are only about 55% cited.
 - **No OCR.** Scanned PDFs are detected and flagged (`scanned_needs_ocr`) rather than silently mis-parsed.
 - **Query decomposition** in High-Faithfulness mode is a lightweight heuristic, not an agentic planner.
@@ -400,8 +460,8 @@ The smoke test checks more than status codes: evidence ids run 1..n, every claim
 
 ## 16. Future work
 
-- More papers, and a judged sample to measure correctness rather than citation form.
-- A weighted fusion of dense and BM25 (plain rank fusion did not beat BM25 on text), a stronger judge model, and a human audit of the evaluation set.
+- More papers, and a human-checked golden set to measure correctness rather than agreement with a model-written reference.
+- A cell-level check that could make table transcription safe (compare each rewritten row with the words on that row of the page); semantic chunking revisited at an equal context budget.
 - OCR for scanned PDFs; an agentic query planner.
 
 ---
