@@ -169,7 +169,7 @@ def make_judge(adapted: bool = False):
             model=OPENROUTER_JUDGE, base_url="https://openrouter.ai/api/v1", api_key=_openrouter_key(), temperature=0,
             max_tokens=1200, timeout=120, max_retries=3, extra_body={"reasoning": {"effort": "low"}}))
     else:
-        llm = LangchainLLMWrapper(ChatOllama(model=JUDGE_MODEL, temperature=0, num_ctx=6144, num_predict=700, keep_alive="30m"))
+        llm = LangchainLLMWrapper(ChatOllama(model=JUDGE_MODEL, temperature=0, num_ctx=6144, num_predict=2000 if "cloud" in JUDGE_MODEL else 700, keep_alive="30m"))
     emb = LangchainEmbeddingsWrapper(OllamaEmbeddings(model=EMBED_MODEL))
     faithfulness = Faithfulness(llm=llm)
     if adapted:

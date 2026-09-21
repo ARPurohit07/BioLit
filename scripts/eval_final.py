@@ -74,10 +74,12 @@ def subset(rows: list[dict], n: int) -> list[dict]:
 
 def judge(provider: str, adapted: bool, limit: int) -> None:
     global SCORES, OUT
-    er.JUDGE_PROVIDER, er.WORKERS = provider, (3 if provider == "openrouter" else 1)
-    batch = 16 if provider == "openrouter" else 4
+    cloud = "cloud" in er.JUDGE_MODEL
+    er.JUDGE_PROVIDER, er.WORKERS = provider, (3 if provider == "openrouter" else 4 if cloud else 1)
+    batch = 16 if (provider == "openrouter" or cloud) else 4
     if provider != "openrouter":
-        SCORES, OUT = SCORES.with_name("scores_final_local.jsonl"), OUT.with_name("final_result_local.json")
+        tag = "cloud" if cloud else "local"
+        SCORES, OUT = SCORES.with_name(f"scores_final_{tag}.jsonl"), OUT.with_name(f"final_result_{tag}.json")
     done = {r["qid"] for r in er.read_jsonl(SCORES)}
     seen, rows = set(), []
     for r in er.read_jsonl(ANSWERS):
@@ -158,8 +160,11 @@ if __name__ == "__main__":
     ap.add_argument("--judge", action="store_true")
     ap.add_argument("--provider", choices=["openrouter", "ollama"], default="openrouter")
     ap.add_argument("--adapted", action="store_true", help="use the calibrated faithfulness instruction")
+    ap.add_argument("--judge-model", help="Ollama model that judges, e.g. gpt-oss:120b-cloud")
     ap.add_argument("--limit", type=int, default=0, help="judge a stratified sample of this many answers")
     a = ap.parse_args()
+    if a.judge_model:
+        er.JUDGE_MODEL = a.judge_model
     if a.generate:
         generate()
     if a.judge:

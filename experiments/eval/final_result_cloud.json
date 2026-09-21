@@ -1,0 +1,61 @@
+{
+  "n_answers": 130,
+  "n_judged": 130,
+  "judge_validated": false,
+  "faithfulness": {
+    "mean": 0.907,
+    "scored": 126,
+    "failed": 4
+  },
+  "factual_correctness": {
+    "mean": 0.329,
+    "scored": 130,
+    "failed": 0
+  },
+  "by_type": {
+    "text": {
+      "faithfulness": 0.947,
+      "factual_correctness": 0.438,
+      "n": 89
+    },
+    "figure": {
+      "faithfulness": 0.819,
+      "factual_correctness": 0.288,
+      "n": 13
+    },
+    "table": {
+      "faithfulness": 0.821,
+      "factual_correctness": 0.0,
+      "n": 28
+    }
+  },
+  "by_source_retrieved": {
+    "True": {
+      "faithfulness": 0.942,
+      "factual_correctness": 0.369,
+      "n": 106
+    },
+    "False": {
+      "faithfulness": 0.757,
+      "factual_correctness": 0.151,
+      "n": 24
+    }
+  },
+  "reference_numbers_in_answer": {
+    "share": 0.554,
+    "of": 83
+  },
+  "empty_answers": 0,
+  "no_answer_fallback": 0,
+  "median_latency_s": 3.8,
+  "value_questions": {
+    "n": 28,
+    "value_present": 0.714,
+    "abstained_insufficient_evidence": 4,
+    "note": "a reference that is only a value cannot be split into claims, so RAGAS correctness is undefined for it; the value is checked directly (thousands separators and a trailing +/- term are ignored)"
+  },
+  "factual_correctness_sentence_references": {
+    "mean": 0.419,
+    "scored": 102
+  }
+}
