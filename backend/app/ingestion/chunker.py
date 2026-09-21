@@ -11,7 +11,7 @@ import re
 import numpy as np
 
 from backend.app.ingestion.pdf_loader import PageText
-from backend.app.ingestion.section_detector import SectionDetector
+from backend.app.ingestion.section_detector import SectionDetector, is_reference_list
 from backend.app.ingestion.structure import table_to_markdown
 from backend.app.models.schemas import Chunk
 
@@ -130,7 +130,7 @@ class PageAwareChunker:
                         chunk_id=f"{document_id}_p{page.page_number}_c{page_chunk_index}",
                         document_id=document_id,
                         page_number=page.page_number,
-                        section=current_section,
+                        section="References" if is_reference_list(run_chunk_text) else current_section,
                         text=run_chunk_text,
                         token_count=count_tokens(run_chunk_text),
                     ))

@@ -67,3 +67,41 @@ class SectionDetector:
                 if normalized == kw or normalized == kw + "s":
                     return section
         return None
+
+
+# "Surname, A." / "Surname, A. B." entries. The lookbehind rejects the "K. Schwarz, A. Pliego" pattern of
+# initials-first author bylines, where the comma-initial is really the next author's.
+_SURNAME_INITIAL_RE = re.compile(r"(?<![A-Z]\. )\b[A-Z][A-Za-z\-]{1,30},\s?[A-Z]\.(?:\s?[A-Z]\.)?")
+_NUMBERED_INITIAL_RE = re.compile(r"\[\d{1,3}\]\s*[A-Z]\.\s?(?:[A-Z]\.\s?)?[A-Z][A-Za-z\-]+")
+_YEAR_RE = re.compile(r"\b(?:19[5-9]\d|20[0-2]\d)[a-z]?\b")
+_LOCATOR_RE = re.compile(
+    r"\b(?:pp\.\s?\d+|vol\.\s?\d+|\d{1,4}\s?\(\d{1,3}\)\s?[:,]\s?[A-Za-z]?\d+|\d{1,5}\s?[–-]\s?\d{1,5}\)?[.,])")
+_FINITE_VERB_RE = re.compile(
+    r"\b(?:is|are|was|were|has|have|had|shows?|shown|showed|propose[sd]?|introduce[sd]?|demonstrate[sd]?|"
+    r"present(?:s|ed)?|use[sd]?|provide[sd]?|found|report(?:s|ed)?|achieve[sd]?|outperform(?:s|ed)?|"
+    r"train(?:s|ed)?|evaluate[sd]?|indicate[sd]?|suggest(?:s|ed)?|can|could|will|would|should|"
+    r"need(?:s|ed)?|allow(?:s|ed)?|require[sd]?)\b", re.IGNORECASE)
+
+_MIN_REFERENCE_WORDS = 20
+
+
+def _reference_score(text: str) -> float:
+    """>= 1.0 means the text is a reference list. Every signal is a density or needs several
+    co-occurring hits, so prose that merely cites a few works ("Smith et al., 2020") scores ~0."""
+    n = len(text.split())
+    if n < _MIN_REFERENCE_WORDS:
+        return 0.0
+    surname_initials = len(_SURNAME_INITIAL_RE.findall(text))
+    numbered = len(_NUMBERED_INITIAL_RE.findall(text))
+    locators = len(_LOCATOR_RE.findall(text))
+    years = len(_YEAR_RE.findall(text))
+    verbs_per_100 = len(_FINITE_VERB_RE.findall(text)) / n * 100
+
+    author_style = min(surname_initials / 3, (surname_initials / n * 100) / 2.0)
+    numbered_style = numbered / 2
+    locator_style = min(locators / 4, years / 3, 2.0 / verbs_per_100 if verbs_per_100 else 1e3)
+    return max(author_style, numbered_style, locator_style)
+
+
+def is_reference_list(text: str) -> bool:
+    return _reference_score(text) >= 1.0
