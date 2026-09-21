@@ -1,141 +1,133 @@
 {
-  "judge": "qwen2.5:3b",
+  "judge": "gpt-oss:120b-cloud",
   "modes": {
     "balanced": {
-      "n_questions": 39,
-      "n_judged": 39,
+      "n_questions": 130,
+      "n_judged": 130,
       "ragas": {
         "faithfulness": {
-          "mean": 0.283,
-          "n_scored": 35,
+          "mean": 0.907,
+          "n_scored": 126,
           "n_failed": 4
         },
-        "answer_relevancy": {
-          "mean": 0.817,
-          "n_scored": 37,
-          "n_failed": 2
-        },
-        "context_precision": {
-          "mean": 0.71,
-          "n_scored": 39,
-          "n_failed": 0
-        },
-        "context_recall": {
-          "mean": 0.897,
-          "n_scored": 34,
-          "n_failed": 5
-        },
         "factual_correctness": {
-          "mean": 0.208,
-          "n_scored": 38,
-          "n_failed": 1
+          "mean": 0.419,
+          "n_scored": 102,
+          "n_failed": 0
         }
       },
       "by_type": {
         "text": {
-          "n": 27,
-          "faithfulness": 0.286,
-          "answer_relevancy": 0.79,
-          "context_precision": 0.76,
-          "context_recall": 0.891,
-          "factual_correctness": 0.267
-        },
-        "table": {
-          "n": 8,
-          "faithfulness": 0.229,
-          "answer_relevancy": 0.98,
-          "context_precision": 0.719,
-          "context_recall": 0.857,
-          "factual_correctness": 0.0
+          "n": 89,
+          "faithfulness": 0.947
         },
         "figure": {
-          "n": 4,
-          "faithfulness": 0.375,
-          "answer_relevancy": 0.655,
-          "context_precision": 0.355,
-          "context_recall": 1.0,
-          "factual_correctness": 0.168
+          "n": 13,
+          "faithfulness": 0.819
+        },
+        "table": {
+          "n": 28,
+          "faithfulness": 0.821
         }
       },
-      "citations": {
-        "citation_coverage": 0.679,
-        "citation_precision": null,
-        "faithfulness": null,
-        "unsupported_claim_rate": null,
-        "flagged_share": 0.453
-      },
+      "citations": {},
       "retrieval": {
-        "source_chunk_in_context": 0.846,
-        "source_paper_in_context": 0.974
+        "value_in_answer": 0.714
       },
       "latency_ms": {
-        "retrieval_latency_ms": 17.0,
-        "generation_latency_ms": 5811.0,
-        "verification_latency_ms": 0.0,
-        "total_latency_ms": 5948.0
+        "total_latency_ms": 3800
       }
+    },
+    "heldout_before": {
+      "n_questions": 62,
+      "n_judged": 62,
+      "ragas": {
+        "faithfulness": {
+          "mean": 0.87,
+          "n_scored": 61,
+          "n_failed": 1
+        },
+        "factual_correctness": {
+          "mean": 0.453,
+          "n_scored": 50,
+          "n_failed": 0
+        },
+        "factual_correctness_precision": {
+          "mean": 0.512,
+          "n_scored": 50,
+          "n_failed": 0
+        },
+        "factual_correctness_recall": {
+          "mean": 0.522,
+          "n_scored": 50,
+          "n_failed": 0
+        }
+      },
+      "by_type": {},
+      "citations": {},
+      "retrieval": {},
+      "latency_ms": {}
+    },
+    "heldout_after": {
+      "n_questions": 62,
+      "n_judged": 62,
+      "ragas": {
+        "faithfulness": {
+          "mean": 0.938,
+          "n_scored": 60,
+          "n_failed": 2
+        },
+        "factual_correctness": {
+          "mean": 0.544,
+          "n_scored": 50,
+          "n_failed": 0
+        },
+        "factual_correctness_precision": {
+          "mean": 0.593,
+          "n_scored": 50,
+          "n_failed": 0
+        },
+        "factual_correctness_recall": {
+          "mean": 0.608,
+          "n_scored": 50,
+          "n_failed": 0
+        }
+      },
+      "by_type": {},
+      "citations": {},
+      "retrieval": {},
+      "latency_ms": {}
     }
   },
   "judge_validity": {
     "faithfulness": {
       "negative_control": "context",
-      "positive_mean": 0.447,
-      "negative_mean": 0.0,
-      "gap": 0.447,
-      "separates": true,
-      "n": 20,
-      "n_positive_scored": 19,
-      "n_negative_scored": 20,
-      "pairs_ranked_correctly": 0.579
-    },
-    "context_recall": {
-      "negative_control": "context",
-      "positive_mean": 0.947,
-      "negative_mean": 0.639,
-      "gap": 0.308,
-      "separates": false,
-      "n": 20,
-      "n_positive_scored": 19,
-      "n_negative_scored": 18,
-      "pairs_ranked_correctly": 0.412
-    },
-    "answer_relevancy": {
-      "negative_control": "question",
-      "positive_mean": 0.7,
-      "negative_mean": 0.555,
-      "gap": 0.145,
-      "separates": false,
-      "n": 20,
-      "n_positive_scored": 20,
-      "n_negative_scored": 20,
-      "pairs_ranked_correctly": 0.8
-    },
-    "context_precision": {
-      "negative_control": "context",
-      "positive_mean": 0.9,
-      "negative_mean": 0.05,
-      "gap": 0.85,
+      "positive_mean": 0.923,
+      "negative_mean": 0.007,
+      "gap": 0.916,
       "separates": true,
       "n": 20,
       "n_positive_scored": 20,
       "n_negative_scored": 20,
-      "pairs_ranked_correctly": 0.85
+      "pairs_ranked_correctly": 1.0
     },
     "factual_correctness": {
       "negative_control": "reference",
-      "positive_mean": 0.855,
-      "negative_mean": 0.013,
-      "gap": 0.842,
+      "positive_mean": 0.993,
+      "negative_mean": 0.0,
+      "gap": 0.993,
       "separates": true,
       "n": 20,
       "n_positive_scored": 20,
-      "n_negative_scored": 19,
-      "pairs_ranked_correctly": 0.947
+      "n_negative_scored": 20,
+      "pairs_ranked_correctly": 1.0
     }
   },
   "caveats": [
-    "The judge is qwen2.5:3b, a small model: RAGAS scores are noisy and some samples fail to parse (n_failed). judge_validity shows whether it separates a true context from a wrong one.",
-    "Reference answers were written by the same 3B model from the source chunk; FactualCorrectness measures agreement with that reference, not with ground truth.",
-    "Small samples: treat differences of a few points as noise."
+    "The answers and the judge are both gpt-oss-120b (the judge runs as an Ollama cloud model, so answers and evidence were sent off this machine for judging). One model family grading its own output tends to flatter it.",
+    "Reference answers were written by a language model from the source passage and checked against it; they are narrow, so a correct answer with extra true detail scores below 1. Factual correctness is agreement with that reference, not with ground truth.",
+    "Factual correctness covers the 102 questions whose reference is a sentence. The 28 whose reference is a bare value (mostly table cells) cannot be split into claims, so the value is checked directly instead: it appears in 71% of those answers.",
+    "Held-out columns: 62 questions the answer prompt was never tuned on; factual correctness there is the F1 of claim precision and recall over the 50 sentence references. A 62-question sample moves a few points by chance, and the two columns differ in more than the scope rule: the earlier answers were served through OpenRouter and the current ones through Ollama cloud, and the current prompt also carries an extractive-answer rule.",
+    "Answer relevancy, context precision and context recall were measured only with the earlier 3B judge, which did not pass the judge-validity check, so they are not published here."
   ]
 }

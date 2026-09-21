@@ -7,17 +7,31 @@ const STRATEGIES: { key: string; label: string; note: string }[] = [
   { key: "hybrid+rerank", label: "Hybrid + reranker", note: "what Balanced mode uses" },
 ];
 
-const RAGAS_ROWS: { key: string; label: string; hint: string }[] = [
+const RAGAS_ROWS: { key: string; label: string; hint: string; validity?: string }[] = [
   { key: "faithfulness", label: "Faithfulness", hint: "Share of the answer's statements supported by the retrieved context." },
   { key: "answer_relevancy", label: "Answer relevancy", hint: "Does the answer address the question." },
   { key: "context_precision", label: "Context precision", hint: "Are the useful passages ranked at the top of what was retrieved." },
   { key: "context_recall", label: "Context recall", hint: "Does the retrieved context contain what the reference answer needs." },
-  { key: "factual_correctness", label: "Factual correctness", hint: "Agreement of the answer's claims with the reference answer." },
+  { key: "factual_correctness", label: "Factual correctness", hint: "Agreement of the answer's claims with the reference answer (F1 of the two rows below)." },
+  {
+    key: "factual_correctness_precision",
+    label: "↳ claim precision",
+    validity: "factual_correctness",
+    hint: "Share of the answer's claims that the reference agrees with. Low = extra or wrong statements.",
+  },
+  {
+    key: "factual_correctness_recall",
+    label: "↳ claim recall",
+    validity: "factual_correctness",
+    hint: "Share of the reference's claims that the answer covers. Low = the answer is incomplete.",
+  },
 ];
 
 const MODE_LABEL: Record<string, string> = {
   fast: "Fast",
-  balanced: "Balanced",
+  balanced: "Balanced, all questions",
+  heldout_before: "Held-out, earlier prompt",
+  heldout_after: "Held-out, current prompt",
   high_faithfulness: "High Faithfulness",
 };
 
@@ -55,7 +69,7 @@ export default function RagEvalSections({ data }: { data: RagEval }) {
             {Object.entries(retrieval.eval_set.by_type)
               .map(([k, v]) => `${v} ${k}`)
               .join(", ")}
-            ) over {retrieval.corpus_chunks.toLocaleString()} indexed chunks. Each question has one known source chunk.
+            ) over {retrieval.corpus_chunks.toLocaleString()} indexed chunks. Each question has one known source chunk, and every reference answer was checked against it.
             Brackets are 95% bootstrap intervals.
           </p>
           <div className="card eval-chart-card">
@@ -144,8 +158,8 @@ export default function RagEvalSections({ data }: { data: RagEval }) {
         <div className="eval-section">
           <h3>Answer quality (RAGAS)</h3>
           <p className="eval-note">
-            Judged by the local model <span className="mono">{ragas.judge}</span>, so scores are noisy. “Scored” counts the
-            answers the judge could evaluate; the rest failed to parse and are left out, not counted as zero.
+            Judged by <span className="mono">{ragas.judge}</span>. “Scored” counts the answers the judge could evaluate; the
+            rest failed to parse and are left out, not counted as zero. See the caveats below before quoting a number.
           </p>
           <div className="card eval-chart-card">
             <table className="eval-latency-table">
@@ -160,8 +174,8 @@ export default function RagEvalSections({ data }: { data: RagEval }) {
                 </tr>
               </thead>
               <tbody>
-                {RAGAS_ROWS.map((row) => {
-                  const v = ragas.judge_validity?.[row.key];
+                {RAGAS_ROWS.filter((row) => Object.values(ragas.modes).some((s) => s.ragas[row.key])).map((row) => {
+                  const v = ragas.judge_validity?.[row.validity ?? row.key];
                   return (
                   <tr key={row.key} title={row.hint}>
                     <td>
@@ -193,24 +207,38 @@ export default function RagEvalSections({ data }: { data: RagEval }) {
                   </tr>
                   );
                 })}
+                {Object.values(ragas.modes).some((s) => s.retrieval.value_in_answer != null) && (
+                  <tr title="Questions whose reference answer is a single value (mostly table cells) are checked by looking for that value in the answer, since it cannot be split into claims.">
+                    <td>Exact value in answer (table-value questions)</td>
+                    {Object.values(ragas.modes).map((s, i) => (
+                      <td key={i} className="mono">{pct(s.retrieval.value_in_answer)}</td>
+                    ))}
+                  </tr>
+                )}
+                {Object.values(ragas.modes).some((s) => s.retrieval.source_chunk_in_context != null) && (
                 <tr title="Whether the labelled source chunk was among the chunks handed to the model">
                   <td>Source chunk in context</td>
                   {Object.values(ragas.modes).map((s, i) => (
                     <td key={i} className="mono">{pct(s.retrieval.source_chunk_in_context)}</td>
                   ))}
                 </tr>
+                )}
+                {Object.values(ragas.modes).some((s) => s.citations.citation_coverage != null) && (
                 <tr title="Share of claims that cite a retrieved block">
                   <td>Citation coverage</td>
                   {Object.values(ragas.modes).map((s, i) => (
                     <td key={i} className="mono">{pct(s.citations.citation_coverage)}</td>
                   ))}
                 </tr>
+                )}
+                {Object.values(ragas.modes).some((s) => s.citations.flagged_share != null) && (
                 <tr title="Claims the fast text-overlap check flags for a manual look">
                   <td>Claims flagged “check source”</td>
                   {Object.values(ragas.modes).map((s, i) => (
                     <td key={i} className="mono">{pct(s.citations.flagged_share)}</td>
                   ))}
                 </tr>
+                )}
               </tbody>
             </table>
           </div>

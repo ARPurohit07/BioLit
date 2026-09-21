@@ -17,7 +17,7 @@ Metrics (binary relevance, one labelled source chunk per question):
   their source passage are "easy" for lexical search; the low-overlap half is "hard"). 95% bootstrap intervals are
   given because 150 questions is a small sample.
 
-    python scripts/eval_retrieval.py                     # writes experiments/eval/retrieval_eval.json
+    python scripts/eval_retrieval.py                     # audited set; writes experiments/eval/retrieval_eval.json
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ from backend.app.retrieval.hybrid import reciprocal_rank_fusion  # noqa: E402
 from backend.app.retrieval.reranker import Reranker  # noqa: E402
 from backend.app.retrieval.vector_store import FAISSVectorStore  # noqa: E402
 
-EVAL_SET = REPO_ROOT / "experiments" / "eval" / "eval_set.jsonl"
+EVAL_SET = REPO_ROOT / "experiments" / "eval" / "eval_set_final.jsonl"
 OUT = REPO_ROOT / "experiments" / "eval" / "retrieval_eval.json"
 KS = (1, 3, 5, 10)
 
@@ -175,9 +175,11 @@ def summarise(rows: list[dict[str, float]], seed: int = 7) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--limit", type=int, default=0, help="only the first N questions (smoke test)")
+    ap.add_argument("--eval-set", type=Path, default=EVAL_SET, help="labelled questions (default: the audited final set)")
+    ap.add_argument("--out", type=Path, default=OUT)
     args = ap.parse_args()
 
-    items = [json.loads(l) for l in EVAL_SET.read_text(encoding="utf-8").splitlines() if l.strip()]
+    items = [json.loads(l) for l in args.eval_set.read_text(encoding="utf-8").splitlines() if l.strip()]
     if args.limit:
         items = items[: args.limit]
     settings, emb, vs, bm, rr = build_components()
@@ -222,13 +224,13 @@ def main() -> int:
         "caveats": [
             "Each question has one labelled source chunk; another chunk that also answers counts as a miss, so chunk-level "
             "recall is a lower bound (paper-level recall is the looser view).",
-            "Questions were written by a 3B model from the very chunk they are scored against, so they share vocabulary "
-            "with it; this favours lexical search. The 'hard' half (below-median word overlap) is the fairer test.",
-            "With ~150 questions the 95% bootstrap intervals are wide; differences smaller than the intervals are noise.",
+            "Questions were written by a language model from the very chunk they are scored against, so they share "
+            "vocabulary with it; this favours lexical search. The 'hard' half (below-median word overlap) is the fairer test.",
+            "With ~125 questions the 95% bootstrap intervals are wide; differences smaller than the intervals are noise.",
         ],
     }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(result, indent=2), encoding="utf-8")
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(json.dumps(result, indent=2), encoding="utf-8")
 
     print(f"\n{'strategy':<15}{'R@1':>7}{'R@5':>7}{'R@10':>7}{'MRR':>7}{'nDCG@10':>9}   paper R@1 / R@5   median ms")
     for arm in ("bm25", "dense", "hybrid", "hybrid+rerank"):
@@ -243,7 +245,7 @@ def main() -> int:
         num_cov = "n/a" if g["number_coverage"]["mean"] is None else f"{g['number_coverage']['mean']:.2f}"
         print(f"{arm:<15}{g['answer_coverage']:>9.2f}{g['answer_covered@0.8']:>9.2f}{num_cov:>9}{g['context_tokens']:>9.0f}")
 
-    print(f"\nwrote {OUT.relative_to(REPO_ROOT).as_posix()}")
+    print(f"\nwrote {args.out}")
     return 0
 
 

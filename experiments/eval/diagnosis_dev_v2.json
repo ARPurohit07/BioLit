@@ -1,0 +1,129 @@
+{
+  "n": 52,
+  "precision": 0.477,
+  "recall": 0.449,
+  "f1": 0.413,
+  "causes": {
+    "wrong_fact": 6,
+    "abstained": 1,
+    "extra_detail": 9,
+    "incomplete": 7
+  },
+  "verdicts": [
+    {
+      "qid": "q128",
+      "cause": "wrong_fact",
+      "reason": "The answer gives an incorrect interaction count (11,103) that contradicts the source stating about 30K interactions."
+    },
+    {
+      "qid": "q061",
+      "cause": "abstained",
+      "reason": "The system answer declines to provide the calculation, while the reference gives the correct details."
+    },
+    {
+      "qid": "q107",
+      "cause": "extra_detail",
+      "reason": "The system answer contains the reference\u2019s explanation plus additional true information from the source, making it longer than the concise reference."
+    },
+    {
+      "qid": "q055",
+      "cause": "incomplete",
+      "reason": "The answer provides raw performance numbers but omits the reference\u2019s key point that the model outperforms the DeepSynergy baseline on the additive\u2011triplet Loewe dataset."
+    },
+    {
+      "qid": "q075",
+      "cause": "wrong_fact",
+      "reason": "The answer invents a \u201cDrug\u2011Disease\u2011Symptom\u2011Gene Dataset\u201d not mentioned in the passage, contradicting the source which states NeuroCADR used RNA sequencing data from hippocampal tissue."
+    },
+    {
+      "qid": "q085",
+      "cause": "incomplete",
+      "reason": "The answer repeats the dispersion vs centralization contrast but omits the explicit statement that MSN\u2011DDI learns atoms by integrating multiple views, which is part of the reference."
+    },
+    {
+      "qid": "q098",
+      "cause": "extra_detail",
+      "reason": "The answer includes the reference content and adds extra true specifics about the factorization algorithm and feature usage."
+    },
+    {
+      "qid": "q017",
+      "cause": "incomplete",
+      "reason": "The answer omits the reference's key point that drug node embeddings are concatenated as input to a multilayer perceptron."
+    },
+    {
+      "qid": "q020",
+      "cause": "incomplete",
+      "reason": "The system answer omits the reference\u2019s note that the obtained similarity relationships are used for further analysis and learning."
+    },
+    {
+      "qid": "q122",
+      "cause": "wrong_fact",
+      "reason": "The system answer claims insufficient evidence to determine differences, contradicting the source which states both methods use the same explicit substructure approach and provides no further differen"
+    },
+    {
+      "qid": "q108",
+      "cause": "extra_detail",
+      "reason": "The system answer repeats the reference claim of lower ECE for CI and adds further numeric ECE and accuracy details not present in the reference."
+    },
+    {
+      "qid": "q097",
+      "cause": "extra_detail",
+      "reason": "The answer repeats the reference\u2019s points but adds extra information about MHCADDI and GoGNN not present in the reference."
+    },
+    {
+      "qid": "q008",
+      "cause": "wrong_fact",
+      "reason": "The system answer adds a fusion layer and predictor that are not described for the Fusion and Prediction Module, contradicting the source which only mentions projection heads and contrastive loss."
+    },
+    {
+      "qid": "q028",
+      "cause": "extra_detail",
+      "reason": "The answer includes detailed ion channel mechanisms not mentioned in the reference answer."
+    },
+    {
+      "qid": "q127",
+      "cause": "extra_detail",
+      "reason": "The answer contains the reference content and adds further correct details (e.g., mentioning bond\u2011angle attributes and the formal update equations) not present in the reference."
+    },
+    {
+      "qid": "q033",
+      "cause": "wrong_fact",
+      "reason": "The answer claims smaller batch sizes improve MoLFormer\u2019s retrieval rate with specific percentages not supported by the passage, contradicting the source which says MoLFormer\u2019s performance is stable a"
+    },
+    {
+      "qid": "q004",
+      "cause": "incomplete",
+      "reason": "The answer omits the part about comparing ECE and AUROC results on four prediction tasks."
+    },
+    {
+      "qid": "q088",
+      "cause": "incomplete",
+      "reason": "The answer mentions the fusion of prototypes with similarity vectors but omits the step of converting similarity scores into vectors matching the prototype dimensions."
+    },
+    {
+      "qid": "q064",
+      "cause": "incomplete",
+      "reason": "The answer only mentions dopamine deficiency and omits the progressive degeneration of substantia nigra dopaminergic neurons that the reference includes."
+    },
+    {
+      "qid": "q109",
+      "cause": "extra_detail",
+      "reason": "The answer repeats the reference content but also adds extra true detail about enrichment on the 12\u202fM CSLs, which goes beyond the reference."
+    },
+    {
+      "qid": "q132",
+      "cause": "extra_detail",
+      "reason": "The answer repeats the reference and adds additional details that go beyond the reference\u2019s concise statement."
+    },
+    {
+      "qid": "q035",
+      "cause": "wrong_fact",
+      "reason": "The answer gives ROC\u2011AUC values (54.6 vs 53.4) that do not match the source, which reports 52.2 vs 51.0 for SIDER."
+    },
+    {
+      "qid": "q141",
+      "cause": "extra_detail",
+      "reason": "The system answer includes the reference value (0.9646) plus additional true AUROC values from the source, providing more detail than the reference."
+    }
+  ]
+}

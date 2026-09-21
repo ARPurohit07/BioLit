@@ -1,0 +1,99 @@
+{
+  "n": 50,
+  "precision": 0.593,
+  "recall": 0.608,
+  "f1": 0.544,
+  "causes": {
+    "incomplete": 7,
+    "extra_detail": 7,
+    "equivalent": 2,
+    "wrong_fact": 1
+  },
+  "verdicts": [
+    {
+      "qid": "q123",
+      "cause": "incomplete",
+      "reason": "The answer only gives the 1,824,204 experimentally verified interactions, omitting the total of over 8,083,600 interactions and the protein/chemical counts mentioned in the reference."
+    },
+    {
+      "qid": "q071",
+      "cause": "extra_detail",
+      "reason": "The system answer contains all of the reference content and adds further true specifics (atom masking, unidirectional bond deletion, graph diffusion) from the source."
+    },
+    {
+      "qid": "q053",
+      "cause": "incomplete",
+      "reason": "It omits the reference\u2019s statement that most drugs lie near the disk boundary forming ATC\u2011level\u20111 clusters."
+    },
+    {
+      "qid": "q007",
+      "cause": "incomplete",
+      "reason": "The answer gave the correct number of single-point mutations (645) but omitted the reference's additional detail about the 456 multi-point mutations and AB1101."
+    },
+    {
+      "qid": "q011",
+      "cause": "incomplete",
+      "reason": "The answer only mentions external evidence, omitting the reference's detail about molecule-specific context such as descriptors, identifiers, and annotations."
+    },
+    {
+      "qid": "q106",
+      "cause": "extra_detail",
+      "reason": "The answer includes the reference's core idea of using MRC but adds unrelated specifics (e.g., QAn\u2011garoo MedHop dataset, drug\u2011protein triplets) and omits the visualization/computation aspect, deviatin"
+    },
+    {
+      "qid": "q076",
+      "cause": "extra_detail",
+      "reason": "The answer includes all of the reference information and adds correct numeric details from the passage."
+    },
+    {
+      "qid": "q054",
+      "cause": "extra_detail",
+      "reason": "The answer repeats the reference statement and adds the phrase \u201con high\u2011depth mutations,\u201d which is true and drawn from the source but not present in the reference."
+    },
+    {
+      "qid": "q102",
+      "cause": "extra_detail",
+      "reason": "The system answer includes the reference's content and adds the detail that the model combines molecular tasks with NLP techniques."
+    },
+    {
+      "qid": "q120",
+      "cause": "incomplete",
+      "reason": "The answer omits the detail that the evaluation uses 12 benchmarks, which the reference includes."
+    },
+    {
+      "qid": "q010",
+      "cause": "equivalent",
+      "reason": "The system answer conveys exactly the same information as the reference answer."
+    },
+    {
+      "qid": "q111",
+      "cause": "equivalent",
+      "reason": "The system answer restates the reference answer with the same numbers and facts."
+    },
+    {
+      "qid": "q024",
+      "cause": "extra_detail",
+      "reason": "The answer includes the reference explanation and adds further steps that go beyond the asked gradient calculation"
+    },
+    {
+      "qid": "q116",
+      "cause": "extra_detail",
+      "reason": "The answer includes the reference point but adds many additional details not present in the reference, going beyond the concise difference described."
+    },
+    {
+      "qid": "q057",
+      "cause": "wrong_fact",
+      "reason": "The answer adds specific AUPR numbers and balanced\u2011ratio details not present in the source, fabricating unsupported information."
+    },
+    {
+      "qid": "q041",
+      "cause": "incomplete",
+      "reason": "The answer omits key details from the reference such as the frozen pre\u2011trained model, the convolutional neural networks and dual multi\u2011head cross\u2011attention, providing only a higher\u2011level summary."
+    },
+    {
+      "qid": "q133",
+      "cause": "incomplete",
+      "reason": "The answer only mentions the default metric (AUROC) and error bars, omitting the various datasets, representations, and other performance details noted in the reference."
+    }
+  ]
+}
