@@ -28,6 +28,9 @@ def _slugify(stem: str) -> str:
     return slug or "document"
 
 
+USE_TABLE_CACHE = bool(get_settings().retrieval_config.get("chunking", {}).get("use_table_transcriptions", False))
+
+
 def make_document_id(pdf_path: Path) -> str:
     digest = hashlib.sha1(pdf_path.read_bytes()).hexdigest()[:8]
     return f"{digest}_{_slugify(pdf_path.stem)}"
@@ -44,7 +47,7 @@ def process_pdf(pdf_path: Path, loader: PDFLoader, extractor: MetadataExtractor,
             "status": "scanned_needs_ocr", "chunks": [],
         }
 
-    pages = loader.load_structured(str(pdf_path), document_id, REPO_ROOT / "data" / "figures", REPO_ROOT)
+    pages = loader.load_structured(str(pdf_path), document_id, REPO_ROOT / "data" / "figures", REPO_ROOT, use_table_cache=USE_TABLE_CACHE)
     metadata = extractor.extract(str(pdf_path), pages)
     chunks = chunker.chunk_document(document_id, pages, section_detector)
 

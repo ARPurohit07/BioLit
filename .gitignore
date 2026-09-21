@@ -60,3 +60,4 @@ Thumbs.db
 experiments/eval/runs_*.jsonl
 experiments/eval/ab_runs_*.jsonl
 experiments/eval/answers_*.jsonl
+data/table_cache/*

@@ -297,3 +297,26 @@ def table_to_markdown(rows: list[list[str]]) -> str:
     lines = ["| " + " | ".join(esc(c) for c in head) + " |", "|" + " --- |" * len(head)]
     lines += ["| " + " | ".join(esc(c) for c in r) + " |" for r in body]
     return "\n".join(lines)
+
+
+def rows_from_markdown(md: str) -> list[list[str]]:
+    rows = []
+    for line in md.splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip().replace(r"\|", "|") for c in line.strip("|").split("|")]
+        if all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c):
+            continue
+        rows.append(cells)
+    return _clean_rows(rows)
+
+
+def apply_transcriptions(tables: list[TableBlock], page_number: int, cache: dict) -> None:
+    """Swap in a cached transcription for a table's rows, but only one that passed the number check when it was made."""
+    for idx, tb in enumerate(tables):
+        entry = cache.get(f"p{page_number}_t{idx}")
+        if entry and entry.get("accepted"):
+            rows = rows_from_markdown(entry["markdown"])
+            if len(rows) >= 2 and max(len(r) for r in rows) >= 2:
+                tb.rows = rows

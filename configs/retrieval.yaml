@@ -4,6 +4,7 @@ chunking:
   chunk_size: 400          # target tokens per chunk (fixed-packing fallback only)
   chunk_overlap: 60        # token overlap between adjacent chunks
   min_chunk_tokens: 40     # drop/merge chunks smaller than this
+  use_table_transcriptions: false  # vision-model table rewrites (scripts/transcribe_tables.py); measured worse: experiments/eval/table_transcription.md
   semantic: false            # split text at embedding topic-shift boundaries instead of packing to chunk_size
   max_chunk_tokens: 220     # hard cap per chunk when semantic is on
   breakpoint_percentile: 80 # sentence-pair distance percentile that triggers a new chunk
@@ -12,11 +13,11 @@ hybrid:
   dense_top_k: 20
   bm25_top_k: 20
   rrf_k: 60                 # RRF constant (standard default)
-  final_top_k: 10
+  final_top_k: 20           # fused candidates handed to the reranker (must be >= candidate_k, or the reranker never sees the full pool)
 
 reranker:
   candidate_k: 20           # candidates fed into the reranker
-  output_k: 5                # evidence chunks kept after reranking
+  output_k: 8                # evidence chunks kept after reranking (at output_k=5 the labelled source chunk was only in context ~84% of questions; lifting to 8 recovers most of the rank-6..10 misses)
 
 # If a generated answer contains no valid [n] marker, ask once more with a reminder. The retry is kept only
 # if it actually cites; an answer that just says the evidence is insufficient is left alone.

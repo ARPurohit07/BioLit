@@ -81,13 +81,14 @@ def classify(row: dict, chunk_text: str) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--half", default="dev")
+    ap.add_argument("--tag", default="", help="diagnose the answers of a variant, e.g. v2")
     a = ap.parse_args()
     qids = {q["qid"] for q in er.read_jsonl(er.EVAL_DIR / f"eval_set_{a.half}.jsonl")}
-    answers = [r for r in er.read_jsonl(er.EVAL_DIR / "answers_final.jsonl") if r["qid"] in qids]
+    answers = [r for r in er.read_jsonl(er.EVAL_DIR / (f"answers_{a.tag}_{a.half}.jsonl" if a.tag else "answers_final.jsonl")) if r["qid"] in qids]
     sentence = [r for r in answers if not is_value(r["reference_answer"])]
     print(f"{a.half}: {len(answers)} answers, {len(sentence)} with sentence references", flush=True)
 
-    pr = precision_recall(sentence, er.EVAL_DIR / f"pr_{a.half}.jsonl")
+    pr = precision_recall(sentence, er.EVAL_DIR / f"pr_{a.half}{'_' + a.tag if a.tag else ''}.jsonl")
     rows = []
     for r in sentence:
         p, rc = pr[r["qid"]]["precision"], pr[r["qid"]]["recall"]
@@ -107,7 +108,7 @@ def main() -> None:
     print("\nCAUSE OF LOSS (source chunk retrieved, F1 < 0.5):")
     for cause, vs in sorted(by.items(), key=lambda kv: -len(kv[1])):
         print(f"  {cause:<17} {len(vs):>3}  e.g. {vs[0]['qid']}: {vs[0]['reason'][:110]}")
-    (er.EVAL_DIR / f"diagnosis_{a.half}.json").write_text(json.dumps(
+    (er.EVAL_DIR / f"diagnosis_{a.half}{'_' + a.tag if a.tag else ''}.json").write_text(json.dumps(
         {"n": len(rows), "precision": mean("p"), "recall": mean("r"), "f1": mean("f1"),
          "causes": dict(Counter(v["cause"] for v in verdicts)), "verdicts": verdicts}, indent=2), encoding="utf-8")
 
