@@ -83,7 +83,7 @@ class PageAwareChunker:
         chunk_size: int,
         chunk_overlap: int,
         min_chunk_tokens: int,
-        semantic: bool = True,
+        semantic: bool = False,
         max_chunk_tokens: int = 220,
         breakpoint_percentile: int = 80,
         embedding_model_name: str = "BAAI/bge-small-en-v1.5",
@@ -97,6 +97,19 @@ class PageAwareChunker:
         self.max_chunk_tokens = max_chunk_tokens
         self.breakpoint_percentile = breakpoint_percentile
         self.embedding_model_name = embedding_model_name
+
+    @classmethod
+    def from_config(cls, chunking_cfg: dict, embedding_model_name: str = "BAAI/bge-small-en-v1.5") -> "PageAwareChunker":
+        """The one place chunking options are read, so the CLI and the upload path cannot disagree."""
+        return cls(
+            chunk_size=chunking_cfg.get("chunk_size", 400),
+            chunk_overlap=chunking_cfg.get("chunk_overlap", 60),
+            min_chunk_tokens=chunking_cfg.get("min_chunk_tokens", 40),
+            semantic=chunking_cfg.get("semantic", False),
+            max_chunk_tokens=chunking_cfg.get("max_chunk_tokens", 220),
+            breakpoint_percentile=chunking_cfg.get("breakpoint_percentile", 80),
+            embedding_model_name=embedding_model_name,
+        )
 
     def chunk_document(self, document_id: str, pages: list[PageText],
                         section_detector: SectionDetector) -> list[Chunk]:

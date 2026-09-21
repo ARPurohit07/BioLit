@@ -21,6 +21,15 @@ from backend.app.verification.claims import Claim
 router = APIRouter(prefix="/api", tags=["query"])
 
 
+def _http_error(exc: Exception, what: str) -> HTTPException:
+    """A failing language model is a bad gateway, not a bug in this app; say which it is."""
+    import requests
+
+    if isinstance(exc, requests.RequestException):
+        return HTTPException(status_code=502, detail=f"{what}: the language model is unavailable ({exc})")
+    return HTTPException(status_code=500, detail=f"{what}: {exc}")
+
+
 def _require_pipeline(request: Request):
     pipeline = getattr(request.app.state, "rag_pipeline", None)
     if pipeline is None:
@@ -43,7 +52,7 @@ def query(body: QueryRequest, request: Request) -> QueryResponse:
             document_ids=body.document_ids,
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Query failed: {exc}")
+        raise _http_error(exc, "Query failed")
 
 
 @router.post("/compare", response_model=QueryResponse)
@@ -52,7 +61,7 @@ def compare(body: CompareRequest, request: Request) -> QueryResponse:
     try:
         return pipeline.compare(document_ids=body.document_ids, aspect=body.aspect, mode=body.mode)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Compare failed: {exc}")
+        raise _http_error(exc, "Compare failed")
 
 
 @router.post("/literature-review", response_model=QueryResponse)
@@ -66,7 +75,7 @@ def literature_review(body: LiteratureReviewRequest, request: Request) -> QueryR
             max_papers=body.max_papers,
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Literature review failed: {exc}")
+        raise _http_error(exc, "Literature review failed")
 
 
 def _load_chunks_by_id(chunk_ids: list[str]) -> dict[str, dict]:

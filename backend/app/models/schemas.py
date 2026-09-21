@@ -271,6 +271,7 @@ class HealthResponse(BaseModel):
     status: str
     ollama_available: bool
     ollama_model: Optional[str] = None
+    generator_remote: bool = False  # true when questions and retrieved passages go to a third-party model
     num_indexed_documents: int
     num_indexed_chunks: int
     reranker_device: Optional[str] = None  # e.g. "cuda (fp16)", "cpu", or "cpu (fell back from GPU: ...)"

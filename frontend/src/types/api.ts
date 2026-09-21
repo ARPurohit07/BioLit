@@ -320,6 +320,7 @@ export interface HealthResponse {
   status: string;
   ollama_available: boolean;
   ollama_model?: string;
+  generator_remote?: boolean;
   num_indexed_documents: number;
   num_indexed_chunks: number;
   /** Where the reranker runs, e.g. "cuda (fp16)" or "cpu (fell back from GPU: ...)". */

@@ -154,11 +154,8 @@ def _index_one_document(request: Request, meta: DocumentMetadata) -> IndexResult
     meta.num_pages = len(pages)
 
     chunk_cfg = settings.retrieval_config.get("chunking", {})
-    chunker = PageAwareChunker(
-        chunk_size=chunk_cfg.get("chunk_size", 400),
-        chunk_overlap=chunk_cfg.get("chunk_overlap", 60),
-        min_chunk_tokens=chunk_cfg.get("min_chunk_tokens", 40),
-    )
+    chunker = PageAwareChunker.from_config(
+        chunk_cfg, settings.models_config.get("embedding_model", {}).get("name", "BAAI/bge-small-en-v1.5"))
     section_detector = SectionDetector()
     chunks = chunker.chunk_document(meta.document_id, pages, section_detector)
 

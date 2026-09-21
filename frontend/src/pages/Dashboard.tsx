@@ -71,6 +71,11 @@ export default function Dashboard() {
               <span className="stat-label">Model</span>
               <span className="stat-value dashboard-model">
                 {health.ollama_model ?? "—"}
+                {health.generator_remote && (
+                  <span className="dashboard-remote" title="This generator is remote: your questions and the retrieved passages are sent to a third party.">
+                    {" "}remote
+                  </span>
+                )}
               </span>
             </div>
             <div className="stat-chip">
