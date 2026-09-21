@@ -127,6 +127,27 @@ def summary() -> None:
     res["empty_answers"] = sum(er.is_empty_answer(a["answer"]) for a in answers.values())
     res["no_answer_fallback"] = sum("does not state the answer" in a["answer"] for a in answers.values())
     res["median_latency_s"] = round(st.median(a["latency"]["total_latency_ms"] for a in answers.values()) / 1000, 1)
+
+    def is_value(ref: str) -> bool:
+        return len(re.findall(r"[A-Za-z]{3,}", ref)) <= 2 and bool(NUM.search(ref))
+
+    def norm(s: str) -> str:
+        s = re.sub(r"(?<=\d),(?=\d{3})", "", s)
+        return s.replace("\u2011", "-").replace("\u2212", "-").replace("\u00a0", " ").replace("\u202f", " ")
+
+    def value_match(ref: str, ans: str) -> bool:
+        nums = NUM.findall(ref.split("\u00b1")[0])
+        return bool(nums) and all(n in norm(ans) for n in nums)
+
+    value_qs = [a for a in answers.values() if is_value(a["reference_answer"])]
+    hits = [value_match(a["reference_answer"], er.clean_answer(a["answer"])) for a in value_qs]
+    abstained = [a for a in value_qs if "insufficient evidence" in a["answer"].lower()]
+    res["value_questions"] = {
+        "n": len(value_qs), "value_present": round(st.fmean(hits), 3) if hits else None,
+        "abstained_insufficient_evidence": len(abstained),
+        "note": "a reference that is only a value cannot be split into claims, so RAGAS correctness is undefined for it; the value is checked directly (thousands separators and a trailing +/- term are ignored)"}
+    sentence = [s["factual_correctness"] for q, s in scores.items() if q in answers and not is_value(answers[q]["reference_answer"])]
+    res["factual_correctness_sentence_references"] = dict(zip(("mean", "scored"), _mean(sentence)))
     OUT.write_text(json.dumps(res, indent=2), encoding="utf-8")
     print(json.dumps(res, indent=2))
 
