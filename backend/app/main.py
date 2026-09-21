@@ -8,7 +8,6 @@ before all dependencies/models are installed/pulled or before indexes exist.
 from __future__ import annotations
 
 import logging
-import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -198,7 +197,6 @@ def health(request: Request) -> HealthResponse:
     ollama_available = ollama_client.is_available() if ollama_client else False
 
     vector_store = getattr(request.app.state, "vector_store", None)
-    bm25_index = getattr(request.app.state, "bm25_index", None)
     num_chunks = 0
     if vector_store is not None:
         try:

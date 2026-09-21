@@ -31,7 +31,6 @@ import os
 import random
 import re
 import statistics
-import sys
 import time
 from collections import defaultdict
 from pathlib import Path

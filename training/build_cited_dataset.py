@@ -484,7 +484,6 @@ def main() -> None:
 
     try:
         for n, cand in enumerate(todo, start=1):
-            t0 = time.time()
             tag = f"[{n:>3}/{len(todo)}] {cand['split']:<5} {cand['kind']:<19}"
 
             # 1. question

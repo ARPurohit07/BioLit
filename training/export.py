@@ -56,7 +56,6 @@ def parse_args() -> argparse.Namespace:
 
 
 def merge_adapter(adapter_path: Path, config: dict, merged_output: Path) -> Path:
-    import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from peft import PeftModel
 

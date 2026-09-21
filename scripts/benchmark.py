@@ -101,7 +101,6 @@ def _build_pipeline():
 
 
 def main() -> None:
-    settings = get_settings()
     db.init_db()
     questions = _load_questions()
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")

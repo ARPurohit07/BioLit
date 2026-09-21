@@ -76,7 +76,6 @@ def main() -> None:
 
     def work(job):
         pdf, doc_id, n, idx, tb, (png, truth) = job
-        cache_file = cache_dir / f"{doc_id}.json"
         md = transcribe(png)
         rows = rows_from_markdown(md)
         extra = digits(NUM.findall(md)) - digits(NUM.findall(truth))
