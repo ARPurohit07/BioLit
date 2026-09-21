@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import statistics as st
 import sys
@@ -34,7 +35,7 @@ NUM = re.compile(r"\d+(?:\.\d+)?")
 def ask(q: dict) -> dict | None:
     for attempt in range(3):
         try:
-            r = requests.post(f"{er.API}/api/query", json={"question": q["question"], "mode": "balanced"}, timeout=300)
+            r = requests.post(f"{er.API}/api/query", json={"question": q["question"], "mode": os.environ.get("EVAL_MODE", "balanced")}, timeout=600)
             r.raise_for_status()
             d = r.json()
             break

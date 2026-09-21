@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import statistics as st
 import sys
@@ -71,6 +72,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--half", default="dev")
     ap.add_argument("--tag", default="v2")
+    ap.add_argument("--base", default="", help="compare against these saved answers (e.g. v2) instead of answers_final")
+    ap.add_argument("--mode", default="balanced")
     a = ap.parse_args()
     import requests
     label = requests.get(f"{er.API}/api/health", timeout=10).json().get("ollama_model", "")
@@ -78,14 +81,15 @@ def main() -> None:
         raise SystemExit(f"backend generator is {label!r}, not gpt-oss-120b; a stale server may hold the port")
     qs = er.read_jsonl(er.EVAL_DIR / f"eval_set_{a.half}.jsonl")
     qids = {q["qid"] for q in qs}
-    base = [r for r in er.read_jsonl(er.EVAL_DIR / "answers_final.jsonl") if r["qid"] in qids]
+    os.environ["EVAL_MODE"] = a.mode
+    base = [r for r in er.read_jsonl(er.EVAL_DIR / (f"answers_{a.base}_{a.half}.jsonl" if a.base else "answers_final.jsonl")) if r["qid"] in qids]
     newp = er.EVAL_DIR / f"answers_{a.tag}_{a.half}.jsonl"
     generate(qs, newp)
     new = [r for r in er.read_jsonl(newp) if r["qid"] in qids]
     print(f"{a.half}: {len(base)} baseline answers, {len(new)} new answers", flush=True)
 
     arms = {}
-    for name, rows, suffix in (("baseline", base, ""), (a.tag, new, f"_{a.tag}")):
+    for name, rows, suffix in (("baseline", base, f"_{a.base}" if a.base else ""), (a.tag, new, f"_{a.tag}")):
         sent = [r for r in rows if not dc.is_value(r["reference_answer"])]
         pr = dc.precision_recall(sent, er.EVAL_DIR / f"pr_{a.half}{suffix}.jsonl")
         fa = faithfulness(rows, er.EVAL_DIR / f"faith_{a.half}{suffix}.jsonl")
