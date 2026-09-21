@@ -1,0 +1,121 @@
+{
+  "summary": {
+    "faithfulness": {
+      "negative_control": "context",
+      "positive_mean": 0.923,
+      "negative_mean": 0.007,
+      "gap": 0.916,
+      "separates": true,
+      "n": 20,
+      "n_positive_scored": 20,
+      "n_negative_scored": 20,
+      "pairs_ranked_correctly": 1.0
+    },
+    "factual_correctness": {
+      "negative_control": "reference",
+      "positive_mean": 0.993,
+      "negative_mean": 0.0,
+      "gap": 0.993,
+      "separates": true,
+      "n": 20,
+      "n_positive_scored": 20,
+      "n_negative_scored": 20,
+      "pairs_ranked_correctly": 1.0
+    }
+  },
+  "raw": {
+    "faithfulness": {
+      "positive": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.75,
+        0.6666666666666666,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.5,
+        1.0,
+        0.75,
+        0.8
+      ],
+      "negative": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.14285714285714285,
+        0.0,
+        0.0
+      ]
+    },
+    "factual_correctness": {
+      "positive": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.86,
+        1.0
+      ],
+      "negative": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "judge": "gpt-oss:120b-cloud"
+}

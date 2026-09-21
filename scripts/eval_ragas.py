@@ -277,7 +277,7 @@ def controls(n: int, only: list[str] | None = None, adapted: bool = False) -> No
     items = [i for i in read_jsonl(EVAL_SET) if i["type"] == "text"]
     random.Random(5).shuffle(items)
     items = items[:n]
-    path = EVAL_DIR / ("judge_controls" + ("_" + JUDGE_PROVIDER if JUDGE_PROVIDER != "ollama" else "") + ("_adapted" if adapted else "") + ".json")
+    path = EVAL_DIR / ("judge_controls" + ("_" + JUDGE_PROVIDER if JUDGE_PROVIDER != "ollama" else "_cloud" if "cloud" in JUDGE_MODEL else "") + ("_adapted" if adapted else "") + ".json")
     saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"summary": {}, "raw": {}}
     _, _, metrics = make_judge(adapted)
     for name in (only or list(CONTROL_KIND)):
@@ -362,9 +362,12 @@ if __name__ == "__main__":
     ap.add_argument("--judge", choices=["default", "adapted"], default="default", help="controls: use the adapted faithfulness prompt")
     ap.add_argument("--provider", choices=["ollama", "openrouter"], default="ollama", help="which model judges")
     ap.add_argument("--eval-set", help="override the question set")
+    ap.add_argument("--judge-model", help="Ollama model that judges, e.g. gpt-oss:120b-cloud")
     a = ap.parse_args()
     JUDGE_PROVIDER = a.provider
-    WORKERS = 8 if a.provider == "openrouter" else 1
+    if a.judge_model:
+        JUDGE_MODEL = a.judge_model
+    WORKERS = 8 if a.provider == "openrouter" else 4 if "cloud" in JUDGE_MODEL else 1
     if a.eval_set:
         EVAL_SET = Path(a.eval_set)
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
