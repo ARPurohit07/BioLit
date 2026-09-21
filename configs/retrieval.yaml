@@ -24,6 +24,11 @@ citation_retry:
   enabled: true
   max_attempts: 1
 
+# If a question-answering answer states a number that is not in the text of the evidence block(s) it cites for
+# it, ask once more naming the offending number(s). The retry is kept only if it leaves fewer numbers unverified.
+value_check:
+  enabled: true
+
 modes:
   fast:
     use_bm25: false

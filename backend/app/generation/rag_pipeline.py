@@ -36,6 +36,7 @@ from backend.app.models.schemas import (
 )
 from backend.app.verification.citation_validator import compute_citation_metrics
 from backend.app.verification.claims import is_abstention, strip_regeneration_scaffold
+from backend.app.verification.grounding import signals as grounding_signals
 
 if TYPE_CHECKING:
     from backend.app.retrieval.hybrid import HybridRetriever
@@ -276,6 +277,57 @@ class RAGPipeline:
                 break
         return answer
 
+    def _unverified_numbers(self, answer: str, evidence: list[EvidenceItem]) -> list[str]:
+        """Every number in the answer that does not appear in the text of a block its own sentence cites.
+
+        Reuses the extractor's sentence/citation split (so "the sentence containing it" and "its citation ids"
+        are exactly what the claim verifier already uses) and grounding's number check (which already strips
+        citation markers before scanning for numbers, so a marker's own digits are never flagged)."""
+        by_id = {e.citation_id: e.text for e in evidence}
+        bad: list[str] = []
+        for claim in self.claim_extractor.extract(answer, evidence):
+            cited = [by_id[i] for i in claim.citation_ids if i in by_id]
+            if cited:
+                bad.extend(grounding_signals(claim.text, cited).missing_numbers)
+        return bad
+
+    def _build_value_retry_prompt(self, user_prompt: str, answer: str, bad_numbers: list[str]) -> str:
+        numbers = ", ".join(sorted(set(bad_numbers)))
+        return (
+            f"{user_prompt}\n\n---\n"
+            f"Your previous answer was:\n{answer}\n\n"
+            f"The number(s) {numbers} do not appear in the evidence block(s) your answer cites for them — you "
+            "likely pulled a value from a different block than the one you cited. Check each cited evidence "
+            "block again and give the value exactly as that evidence states it, or say the evidence does not "
+            "state it if no cited block contains it. Output only the revised answer."
+        )
+
+    def _ensure_values(
+        self, user_prompt: str, system_prompt: str, answer: str, evidence: list[EvidenceItem]
+    ) -> str:
+        """Catch a number stated in the answer that was actually read off a different evidence block than the
+        one cited for it. If nothing is unverified, return as-is with no LLM call; otherwise retry once, naming
+        the offending number(s), and keep the retry only if it leaves strictly fewer numbers unverified."""
+        cfg = self.config.get("value_check", {})
+        if not cfg.get("enabled", True) or not evidence:
+            return answer
+        bad = self._unverified_numbers(answer, evidence)
+        if not bad:
+            return answer
+        try:
+            revised = strip_regeneration_scaffold(
+                self.ollama_client.generate(
+                    self._build_value_retry_prompt(user_prompt, answer, bad),
+                    system=system_prompt,
+                    temperature=0.0,
+                )
+            )
+        except Exception:
+            return answer
+        if revised.strip() and len(self._unverified_numbers(revised, evidence)) < len(bad):
+            return revised
+        return answer
+
     def _generate_cited(self, user_prompt: str, system_prompt: str, evidence: list[EvidenceItem]) -> str:
         return self._ensure_citations(
             user_prompt, system_prompt, self.ollama_client.generate(user_prompt, system=system_prompt), evidence
@@ -362,6 +414,8 @@ class RAGPipeline:
         t0 = time.perf_counter()
         answer, stats = self.ollama_client.generate_with_stats(user_prompt, system=system_prompt)
         answer = self._ensure_citations(user_prompt, system_prompt, answer, evidence)
+        if query_type == QueryType.QUESTION_ANSWERING:
+            answer = self._ensure_values(user_prompt, system_prompt, answer, evidence)
         latency.generation_latency_ms = (time.perf_counter() - t0) * 1000.0
 
         claims = self.claim_extractor.extract(answer, evidence)
