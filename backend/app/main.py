@@ -8,6 +8,7 @@ before all dependencies/models are installed/pulled or before indexes exist.
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -21,6 +22,7 @@ from backend.app.api.evaluation import router as evaluation_router
 from backend.app.api.query import router as query_router
 from backend.app.config.settings import get_settings
 from backend.app.generation.ollama_client import OllamaClient
+from backend.app.generation.openrouter_client import OpenRouterClient
 from backend.app.generation.rag_pipeline import RAGPipeline
 from backend.app.models.schemas import HealthResponse
 from backend.app.verification.claims import ClaimExtractor
@@ -50,12 +52,28 @@ def _init_state(app: FastAPI) -> None:
         errors.append(f"db.init_db failed: {exc}")
 
     try:
-        app.state.ollama_client = OllamaClient(
+        gen_cfg = settings.models_config.get("generation", {})
+        app.state.generator_label = f"ollama:{settings.ollama_model}"
+        client = None
+        if (os.environ.get("BIOLIT_GENERATION_PROVIDER") or gen_cfg.get("provider")) == "openrouter":
+            key = os.environ.get("OPENROUTER_KEY", "")
+            or_cfg = gen_cfg.get("openrouter", {})
+            if key:
+                client = OpenRouterClient(
+                    api_key=key, model=or_cfg.get("model", "openai/gpt-oss-120b"),
+                    base_url=or_cfg.get("base_url", "https://openrouter.ai/api/v1"),
+                    timeout_s=or_cfg.get("timeout_s", 120), max_tokens=or_cfg.get("max_tokens", 2048),
+                    reasoning_effort=or_cfg.get("reasoning_effort", "low"),
+                )
+                app.state.generator_label = f"openrouter:{client.model}"
+            else:
+                errors.append("generation.provider is openrouter but OPENROUTER_KEY is not set; using local Ollama")
+        app.state.ollama_client = client or OllamaClient(
             host=settings.ollama_host, model=settings.ollama_model,
             timeout_s=settings.models_config.get("ollama", {}).get("request_timeout_s", 120),
         )
     except Exception as exc:
-        errors.append(f"OllamaClient init failed: {exc}")
+        errors.append(f"LLM client init failed: {exc}")
 
     try:
         from backend.app.retrieval.embeddings import EmbeddingModel
@@ -161,7 +179,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="BioLit", description="Local, privacy-preserving biomedical literature RAG system.", lifespan=lifespan)
+app = FastAPI(title="BioLit", description="Biomedical literature RAG system: local retrieval, configurable generation.", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -219,7 +237,7 @@ def health(request: Request) -> HealthResponse:
         status=status,
         reranker_device=reranker.describe() if reranker is not None and hasattr(reranker, "describe") else None,
         ollama_available=ollama_available,
-        ollama_model=settings.ollama_model,
+        ollama_model=getattr(request.app.state, "generator_label", settings.ollama_model),
         num_indexed_documents=num_docs,
         num_indexed_chunks=num_chunks,
     )

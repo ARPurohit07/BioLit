@@ -43,3 +43,15 @@ verifier:
   # Verification uses the same local Ollama model by default, with a dedicated low-temperature prompt.
   use_ollama_model: true
   temperature: 0.0
+
+# Which LLM writes answers and verifies claims. "ollama" keeps everything on this machine. "openrouter" sends the question
+# and the retrieved passages to OpenRouter (retrieval, embeddings and reranking still run locally); needs OPENROUTER_KEY in
+# the environment or .env. If the key is missing the app falls back to Ollama and says so in the health errors.
+generation:
+  provider: openrouter
+  openrouter:
+    model: "openai/gpt-oss-120b"
+    base_url: "https://openrouter.ai/api/v1"
+    reasoning_effort: low
+    max_tokens: 2048
+    timeout_s: 120

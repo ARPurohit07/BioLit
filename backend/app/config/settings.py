@@ -27,6 +27,21 @@ def _load_yaml(path: Path) -> dict[str, Any]:
         return yaml.safe_load(f) or {}
 
 
+def _load_dotenv() -> None:
+    """Read KEY=VALUE lines from the repo's .env into the environment (existing variables win)."""
+    path = REPO_ROOT / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+
+
+_load_dotenv()
+
+
 def _env(key: str, default: str) -> str:
     return os.environ.get(key, default)
 

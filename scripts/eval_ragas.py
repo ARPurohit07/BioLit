@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import re
 import statistics
@@ -44,6 +45,9 @@ PROCESSED = REPO_ROOT / "data" / "processed"
 API = "http://127.0.0.1:8000"
 JUDGE_MODEL = "qwen2.5:3b"
 EMBED_MODEL = "nomic-embed-text"
+JUDGE_PROVIDER = "ollama"            # "ollama" (local 3B) or "openrouter" (large model); set by --provider
+OPENROUTER_JUDGE = "openai/gpt-oss-120b"
+WORKERS = 1                          # concurrent judge calls: 1 for the local GPU, more for a remote API
 METRICS = ("faithfulness", "answer_relevancy", "context_precision", "context_recall", "factual_correctness")
 
 
@@ -141,13 +145,31 @@ ADAPTED_NLI = (
 )
 
 
+def _openrouter_key() -> str:
+    key = os.environ.get("OPENROUTER_KEY", "")
+    env = REPO_ROOT / ".env"
+    if not key and env.exists():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("OPENROUTER_KEY"):
+                key = line.partition("=")[2].strip().strip("\"'")
+    if not key:
+        raise SystemExit("OPENROUTER_KEY is not set (environment or .env)")
+    return key
+
+
 def make_judge(adapted: bool = False):
     from langchain_ollama import ChatOllama, OllamaEmbeddings
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
     from ragas.metrics import (Faithfulness, FactualCorrectness, LLMContextPrecisionWithReference,
                                LLMContextRecall, ResponseRelevancy)
-    llm = LangchainLLMWrapper(ChatOllama(model=JUDGE_MODEL, temperature=0, num_ctx=6144, num_predict=700, keep_alive="30m"))
+    if JUDGE_PROVIDER == "openrouter":
+        from langchain_openai import ChatOpenAI
+        llm = LangchainLLMWrapper(ChatOpenAI(
+            model=OPENROUTER_JUDGE, base_url="https://openrouter.ai/api/v1", api_key=_openrouter_key(), temperature=0,
+            max_tokens=1200, timeout=120, max_retries=3, extra_body={"reasoning": {"effort": "low"}}))
+    else:
+        llm = LangchainLLMWrapper(ChatOllama(model=JUDGE_MODEL, temperature=0, num_ctx=6144, num_predict=700, keep_alive="30m"))
     emb = LangchainEmbeddingsWrapper(OllamaEmbeddings(model=EMBED_MODEL))
     faithfulness = Faithfulness(llm=llm)
     if adapted:
@@ -183,7 +205,7 @@ def _score(rows: list[dict], metrics: dict, names: tuple[str, ...]) -> list[dict
         for r in rows
     ])
     res = evaluate(ds, metrics=[metrics[m] for m in names], show_progress=False, raise_exceptions=False,
-                   run_config=RunConfig(timeout=600, max_retries=2, max_workers=1))
+                   run_config=RunConfig(timeout=600, max_retries=2, max_workers=WORKERS))
     df = res.to_pandas()
     out = []
     for i in range(len(rows)):
@@ -255,7 +277,7 @@ def controls(n: int, only: list[str] | None = None, adapted: bool = False) -> No
     items = [i for i in read_jsonl(EVAL_SET) if i["type"] == "text"]
     random.Random(5).shuffle(items)
     items = items[:n]
-    path = EVAL_DIR / ("judge_controls_adapted.json" if adapted else "judge_controls.json")
+    path = EVAL_DIR / ("judge_controls" + ("_" + JUDGE_PROVIDER if JUDGE_PROVIDER != "ollama" else "") + ("_adapted" if adapted else "") + ".json")
     saved = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"summary": {}, "raw": {}}
     _, _, metrics = make_judge(adapted)
     for name in (only or list(CONTROL_KIND)):
@@ -338,7 +360,13 @@ if __name__ == "__main__":
     ap.add_argument("--n", type=int, default=50)
     ap.add_argument("--metrics", nargs="*", help="controls: only these metrics (default: all five)")
     ap.add_argument("--judge", choices=["default", "adapted"], default="default", help="controls: use the adapted faithfulness prompt")
+    ap.add_argument("--provider", choices=["ollama", "openrouter"], default="ollama", help="which model judges")
+    ap.add_argument("--eval-set", help="override the question set")
     a = ap.parse_args()
+    JUDGE_PROVIDER = a.provider
+    WORKERS = 8 if a.provider == "openrouter" else 1
+    if a.eval_set:
+        EVAL_SET = Path(a.eval_set)
     EVAL_DIR.mkdir(parents=True, exist_ok=True)
     if a.phase == "generate":
         generate(a.mode, a.n)

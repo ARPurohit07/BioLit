@@ -1,0 +1,51 @@
+{
+  "n_answers": 130,
+  "n_judged": 40,
+  "judge_validated": false,
+  "faithfulness": {
+    "mean": 0.507,
+    "scored": 38,
+    "failed": 2
+  },
+  "factual_correctness": {
+    "mean": 0.256,
+    "scored": 40,
+    "failed": 0
+  },
+  "by_type": {
+    "figure": {
+      "faithfulness": 0.25,
+      "factual_correctness": 0.24,
+      "n": 4
+    },
+    "table": {
+      "faithfulness": 0.5,
+      "factual_correctness": 0.0,
+      "n": 9
+    },
+    "text": {
+      "faithfulness": 0.55,
+      "factual_correctness": 0.343,
+      "n": 27
+    }
+  },
+  "by_source_retrieved": {
+    "True": {
+      "faithfulness": 0.523,
+      "factual_correctness": 0.283,
+      "n": 34
+    },
+    "False": {
+      "faithfulness": 0.4,
+      "factual_correctness": 0.1,
+      "n": 6
+    }
+  },
+  "reference_numbers_in_answer": {
+    "share": 0.554,
+    "of": 83
+  },
+  "empty_answers": 0,
+  "no_answer_fallback": 0,
+  "median_latency_s": 3.8
+}

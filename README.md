@@ -1,6 +1,6 @@
 # BioLit — Evidence-Grounded Scientific Literature Synthesis
 
-A **local, privacy-preserving** research assistant for biomedical / drug-discovery literature. Every model — embeddings, reranker, generator, verifier — runs on your machine through [Ollama](https://ollama.com) and local Hugging Face models. No document, query, or answer ever leaves the machine. There is no OpenAI/Anthropic/Gemini call anywhere in this codebase.
+A research assistant for biomedical / drug-discovery literature. **Retrieval, embeddings, reranking, the index and the claim extractor run on your machine.** Answers are written by a large model through OpenRouter by default, which means the question and the retrieved passages of your indexed papers are sent to that service; set `generation.provider: ollama` in `configs/models.yaml` (and `ollama pull qwen2.5:3b`) for a setup where nothing leaves the machine, at the cost of the answer quality a small model gives. The app reports which one is active on `GET /api/health`.
 
 BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with structure-aware chunking (text, tables and figures), claim-level citation verification, and an evaluation framework that measures — rather than assumes — whether any of that actually helps. A QLoRA fine-tuning experiment is included too, reported as an evaluated side study that the app does not use ([§18](#18-experiment-qlora-fine-tuning-evaluated-not-deployed)).
 
@@ -69,7 +69,7 @@ Facts belong in the index, not the weights. RAG is what lets BioLit answer quest
 
 ## 5. Why Ollama?
 
-Ollama is the only LLM inference path in this application. It keeps the served model, the runtime, and all inference fully local and swappable (GGUF in, `ollama create`, done) without the app depending on any cloud provider's API or uptime.
+Ollama is the fully local LLM path. The app can also send generation to OpenRouter (`generation.provider` in `configs/models.yaml`), trading privacy for answer quality; both clients share one interface, so the pipeline and the claim verifier work with either.
 
 ## 6. Repository layout
 
