@@ -8,7 +8,7 @@ BioLit is not a chatbot. It is a hybrid-retrieval RAG pipeline with structure-aw
 
 ## Status and results at a glance
 
-**Works today (verified):** an end-to-end pipeline over **50 arXiv papers** (1,476 indexed chunks: text, tables and figure captions) — ingest, hybrid retrieval, rerank, cited answer, claim verification, React UI. `GET /api/health` reports `ok`. The model-free test suite (196 tests, no GPU or downloads) passes; a smoke test exercises every endpoint against a running backend.
+**Works today (verified):** an end-to-end pipeline over **50 arXiv papers** (1,476 indexed chunks: text, tables and figure captions) — ingest, hybrid retrieval, rerank, cited answer, claim verification, React UI. `GET /api/health` reports `ok`. The model-free test suite (181 tests plus 1 skipped, no GPU or downloads) passes; a smoke test exercises every endpoint against a running backend.
 
 **Measured on 126 audited questions** (every reference answer was checked against its source; full method, intervals and caveats in [§9](#9-evaluation)):
 
@@ -436,7 +436,7 @@ python -m pytest -q
 # Some tests load real models, and the Ollama integration test only runs when Ollama is up.
 
 python -m pytest -q --ignore=backend/tests/test_api.py --ignore=backend/tests/test_retrieval.py --ignore=tests/test_integration.py
-# The model-free tests (196 with test_api excluded): seconds, no GPU, no downloads. This is what CI runs.
+# The model-free tests (181 pass, 1 skipped): under a minute, no GPU, no downloads. This is what CI runs.
 
 python scripts/smoke_test_api.py            # start the backend first; about 10 minutes for the full run
 python scripts/smoke_test_api.py --quick    # skip High-Faithfulness and literature review (about 3 minutes)
@@ -444,7 +444,7 @@ python scripts/smoke_test_api.py --quick    # skip High-Faithfulness and literat
 
 The smoke test checks more than status codes: evidence ids run 1..n, every claim cites real evidence, metrics are in range and consistent with the claims, unverified modes report no faithfulness figures, document filters are respected, error paths return 4xx rather than 500, and an upload → index → query → delete round trip leaves the index as it found it (it backs the index up first). `WARN` lines are answer-quality observations, not defects.
 
-**CI** (`.github/workflows/ci.yml`) runs the model-free tests with CPU-only PyTorch, plus the frontend typecheck and build, on every push and pull request. The workflow is written to run exactly the commands above, but it has not yet been executed on GitHub: this repository has no remote configured.
+**CI** (`.github/workflows/ci.yml`) runs the model-free tests with CPU-only PyTorch, plus the frontend typecheck and build, on every push and pull request. The workflow runs exactly the commands above and has passed on GitHub on every push so far.
 
 ## 15. Limitations
 

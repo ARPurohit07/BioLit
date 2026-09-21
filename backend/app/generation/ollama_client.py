@@ -1,8 +1,8 @@
-"""Thin REST client for a local Ollama server.
+"""Thin REST client for an Ollama server (self.host, never a hard-coded address).
 
-No cloud LLM APIs are used anywhere in BioLit — this is the only place the
-system talks to a language model, and it always talks to a local Ollama
-instance (self.host), never a hard-coded address.
+A locally served model keeps everything on this machine. A model tagged -cloud is
+served by Ollama's cloud, so the question and retrieved passages leave it. The other
+generation option is OpenRouter (openrouter_client.py); factory.py picks between them.
 """
 from __future__ import annotations
 
