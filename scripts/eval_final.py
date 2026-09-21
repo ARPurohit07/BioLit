@@ -32,13 +32,17 @@ NUM = re.compile(r"\d+(?:\.\d+)?")
 
 
 def ask(q: dict) -> dict | None:
-    try:
-        r = requests.post(f"{er.API}/api/query", json={"question": q["question"], "mode": "balanced"}, timeout=300)
-        r.raise_for_status()
-        d = r.json()
-    except Exception as exc:
-        print(f"  [{q['qid']}] failed: {exc}", flush=True)
-        return None
+    for attempt in range(3):
+        try:
+            r = requests.post(f"{er.API}/api/query", json={"question": q["question"], "mode": "balanced"}, timeout=300)
+            r.raise_for_status()
+            d = r.json()
+            break
+        except Exception as exc:
+            if attempt == 2:
+                print(f"  [{q['qid']}] failed: {exc}", flush=True)
+                return None
+            time.sleep(4 * (attempt + 1))
     return {**{k: q[k] for k in ("qid", "type", "question", "reference_answer", "chunk_id", "document_id")},
             "answer": d["answer_markdown"], "contexts": [e["text"] for e in d["evidence"]],
             "source_chunk_retrieved": q["chunk_id"] in {e["chunk_id"] for e in d["evidence"]},

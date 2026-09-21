@@ -1,0 +1,126 @@
+{
+  "n": 52,
+  "precision": 0.375,
+  "recall": 0.408,
+  "f1": 0.358,
+  "causes": {
+    "incomplete": 7,
+    "equivalent": 2,
+    "wrong_fact": 4,
+    "extra_detail": 6,
+    "reference_defect": 1,
+    "abstained": 2
+  },
+  "verdicts": [
+    {
+      "qid": "q004",
+      "cause": "incomplete",
+      "reason": "The answer leaves out the reference's detail about comparing ECE and AUROC results on four prediction tasks."
+    },
+    {
+      "qid": "q006",
+      "cause": "equivalent",
+      "reason": "The system answer conveys exactly the same information as the reference answer."
+    },
+    {
+      "qid": "q008",
+      "cause": "wrong_fact",
+      "reason": "It adds an unsupported claim that the module predicts molecular properties and omits the key details about the three projection heads and contrastive loss."
+    },
+    {
+      "qid": "q017",
+      "cause": "incomplete",
+      "reason": "The answer omits the reference's detail that drug node embeddings are concatenated to a multilayer perceptron input."
+    },
+    {
+      "qid": "q020",
+      "cause": "incomplete",
+      "reason": "The system answer omits the reference\u2019s mention that the similarity relationships are used for further analysis and learning."
+    },
+    {
+      "qid": "q027",
+      "cause": "extra_detail",
+      "reason": "The system answer repeats the reference information and adds extra true details about using the training set to fit the model and test set for evaluation."
+    },
+    {
+      "qid": "q028",
+      "cause": "incomplete",
+      "reason": "The answer describes the mechanisms but omits the reference's key point that Figure\u202f2 shows these processes specifically in patients with epilepsy."
+    },
+    {
+      "qid": "q035",
+      "cause": "reference_defect",
+      "reason": "The reference answer gives incorrect ROC\u2011AUC values for SIDER (54.6 vs 53.4) that contradict the source, while the system answer correctly reports 52.2 vs 51.0."
+    },
+    {
+      "qid": "q036",
+      "cause": "extra_detail",
+      "reason": "The answer repeats the reference (SMILES) and adds extra but correct information about converting SMILES to graph representations."
+    },
+    {
+      "qid": "q040",
+      "cause": "extra_detail",
+      "reason": "The answer includes all reference information and adds true additional specifics from the source such as training seeds, scaffold-splitting, and the exact metrics used."
+    },
+    {
+      "qid": "q042",
+      "cause": "incomplete",
+      "reason": "The answer omits the reference's statement that d0\u202f=\u202f210 is optimal, even though it adds extra AUROC/AUPRC details."
+    },
+    {
+      "qid": "q055",
+      "cause": "incomplete",
+      "reason": "The answer gives specific metric values but omits the key point that the model outperforms the DeepSynergy baseline on the Loewe additive\u2011triplet dataset."
+    },
+    {
+      "qid": "q061",
+      "cause": "abstained",
+      "reason": "The system declined to answer even though the source provides the CI calculation details."
+    },
+    {
+      "qid": "q073",
+      "cause": "equivalent",
+      "reason": "The system answer correctly states that the source provides no evidence for MSDA performance, matching the reference's conclusion."
+    },
+    {
+      "qid": "q075",
+      "cause": "wrong_fact",
+      "reason": "The answer claims NeuroCADR used a master dataset from CTD and a symptom\u2011disease network, which is not supported by the source passage."
+    },
+    {
+      "qid": "q088",
+      "cause": "extra_detail",
+      "reason": "The system answer adds specifics about concatenation and a feedforward network that are not present in the reference answer"
+    },
+    {
+      "qid": "q108",
+      "cause": "wrong_fact",
+      "reason": "The answer states that CI has lower absolute ECE than SIG and TOP with specific numbers, which is not supported by the source and contradicts the passage's description of CI\u2019s smaller ECE decline."
+    },
+    {
+      "qid": "q122",
+      "cause": "abstained",
+      "reason": "The system answer declined to provide the information, stating insufficient evidence, instead of stating that the methods are described as using the same explicit approach."
+    },
+    {
+      "qid": "q126",
+      "cause": "extra_detail",
+      "reason": "The answer includes all reference content plus additional correct details from the source, making it longer than the reference."
+    },
+    {
+      "qid": "q128",
+      "cause": "wrong_fact",
+      "reason": "The answer gives 11,103 interactions, contradicting the source which states about 30K interactions."
+    },
+    {
+      "qid": "q132",
+      "cause": "extra_detail",
+      "reason": "The system answer adds correct specifics about using GNNs and concatenating embeddings that go beyond the reference\u2019s brief description."
+    },
+    {
+      "qid": "q141",
+      "cause": "incomplete",
+      "reason": "The reference answer only gave one AUROC value (0.9646) while the source lists multiple values for LRSSL on Gdataset."
+    }
+  ]
+}

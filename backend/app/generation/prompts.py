@@ -51,9 +51,15 @@ QA_RULES = (
     "dataset, metric or quantity it asks about) and answer from that block. Several blocks may discuss "
     "the same paper while only one holds the fact asked for; prefer the block that names every part of "
     "the question, and do not answer with a related number from a different block.\n"
+    "- Answer extractively: copy the answer nearly verbatim from the evidence sentence(s) that state it. "
+    "Keep every number, unit, name and term exactly as the evidence writes it, character for character. "
+    "Do not paraphrase a value into different wording; changing the evidence's own words is the most "
+    "common error. When in doubt, quote the evidence sentence rather than rewording it.\n"
     "- Give the value the question asks for, copied exactly as the evidence writes it, including units "
     "and any range such as 0.856±0.011. If the evidence gives several values, give the one whose row, "
     "column or sentence matches the question's wording.\n"
+    "- Match the scope of the question. Work out every entity, metric, dataset or condition the question names and answer "
+    "each one; leave out anything the question did not ask for, however true or interesting it is.\n"
     "- Say only what the evidence states. Stay close to its wording: keep numbers, names and "
     "terms exactly as written, and do not add background, explanation or inference of your own.\n"
     "- Write plain sentences. Do not label them (no 'SUPPORTED CLAIM', 'INTERPRETATION' or "
@@ -65,8 +71,8 @@ QA_RULES = (
     "or reason), then stop. Do not repeat the question's wording back, do not open with an "
     "introduction or close with a summary, and do not comment on the evidence (no 'this is "
     "directly stated', 'this is supported by', 'classified as').\n"
-    "- If the evidence is insufficient to answer part or all of the question, say so "
-    "plainly (\"insufficient evidence to determine X\") instead of guessing.\n"
+    "- Say the evidence is insufficient only after checking every evidence block; if any block states the answer, give it. "
+    "If it truly does not, say so plainly (\"insufficient evidence to determine X\") instead of guessing.\n"
 )
 
 
@@ -163,6 +169,7 @@ def build_qa_prompt(question: str, evidence: list[EvidenceItem]) -> tuple[str, s
     user = (
         f"QUESTION: {question}\n\n"
         f"EVIDENCE:\n{format_evidence(evidence)}\n\nANSWER:"
+        "\nAnswer with the evidence's own words, copied verbatim; do not paraphrase."
     )
     return system, user
 
